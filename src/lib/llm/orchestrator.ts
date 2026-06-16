@@ -1,5 +1,3 @@
-"use client";
-
 import type { LLMProvider } from "@/types";
 
 interface ProviderConfig {

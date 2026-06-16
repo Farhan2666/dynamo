@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeContext } from "@/lib/agents/agent1-context";
+import { callLLM } from "@/lib/llm/api-call";
+import type { ContextProfile } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json();
+    const { prompt, settings } = await req.json();
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length < 3) {
       return NextResponse.json(
@@ -12,10 +14,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const context = analyzeContext(prompt);
+    if (settings?.apiKey) {
+      try {
+        const system = `You are a market context analyzer. Analyze the business description and output a JSON object with:
+- niche (string): business category
+- industryTags (array of strings): relevant keywords
+- primaryColor (hex string): best primary brand color based on color psychology
+- secondaryColor (hex string): best secondary brand color
+- primaryFont (string): recommended font
+- secondaryFont (string): secondary font
+- layoutPriority (array of strings): preferred section order
+- audiencePersona (string): target audience description
+- moodProfile (string): one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced
 
+Return ONLY valid JSON, no explanations.`;
+
+        const result = await callLLM({
+          provider: settings.llmProvider,
+          apiKey: settings.apiKey,
+          model: settings.defaultModel,
+          systemPrompt: system,
+          userPrompt: `Analyze this business: ${prompt}`,
+          responseFormat: "json",
+        });
+
+        const context = JSON.parse(result.content) as ContextProfile;
+        return NextResponse.json({
+          context,
+          llm: true,
+          model: result.model,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return NextResponse.json(
+          { error: `LLM call failed: ${(e as Error).message.slice(0, 150)}` },
+          { status: 502 }
+        );
+      }
+    }
+
+    const context = analyzeContext(prompt);
     return NextResponse.json({
       context,
+      llm: false,
       timestamp: new Date().toISOString(),
     });
   } catch {

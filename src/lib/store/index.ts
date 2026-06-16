@@ -87,7 +87,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   settings: {
     llmProvider: "anthropic",
     apiKey: "",
-    defaultModel: "claude-3-sonnet",
+    defaultModel: "claude-3-5-sonnet-20240620",
     theme: "light",
     historySize: 10,
   },

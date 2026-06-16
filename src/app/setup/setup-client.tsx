@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useSettingsStore, useUIStore } from "@/lib/store";
 import { Button, Input, Card, Badge } from "@/components/ui";
 import type { LLMProvider } from "@/types";
+import { getModels, getDefaultModel } from "@/lib/llm/models";
 
 const PROVIDERS: Array<{
   id: LLMProvider;
@@ -37,17 +38,38 @@ export function SetupPageClient() {
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  const handleTest = async () => {
+  const handleTest = useCallback(async () => {
     setTesting(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    const valid = validateKey(settings.apiKey, settings.llmProvider);
-    if (valid) {
-      addToast("API key validated successfully", "success");
-    } else {
-      addToast("Invalid API key format for this provider", "error");
+    try {
+      const valid = validateKey(settings.apiKey, settings.llmProvider);
+      if (!valid) {
+        addToast("Invalid API key format for this provider", "error");
+        setTesting(false);
+        return;
+      }
+      const res = await fetch("/api/v1/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: "test connection",
+          settings: {
+            llmProvider: settings.llmProvider,
+            apiKey: settings.apiKey,
+            defaultModel: settings.defaultModel,
+          },
+        }),
+      });
+      if (res.ok) {
+        addToast("API key validated — LLM responded", "success");
+      } else {
+        const err = await res.text();
+        addToast(`API error: ${err.slice(0, 100)}`, "error");
+      }
+    } catch {
+      addToast("Connection failed. Check your key & network.", "error");
     }
     setTesting(false);
-  };
+  }, [settings, addToast]);
 
   const selectedProvider = PROVIDERS.find((p) => p.id === settings.llmProvider);
 
@@ -73,7 +95,7 @@ export function SetupPageClient() {
         {PROVIDERS.map((p) => (
           <button
             key={p.id}
-            onClick={() => updateSettings({ llmProvider: p.id })}
+            onClick={() => updateSettings({ llmProvider: p.id, defaultModel: getDefaultModel(p.id) })}
             className={`
               flex flex-col items-center gap-1.5 p-3 rounded-soft border text-center transition-all
               ${settings.llmProvider === p.id
@@ -143,6 +165,31 @@ export function SetupPageClient() {
                 >
                   Test Connection
                 </Button>
+              </div>
+
+              <div>
+                <label className="block text-caption font-medium text-text-muted mb-1.5">
+                  Model
+                </label>
+                <div className="relative">
+                  <select
+                    value={settings.defaultModel}
+                    onChange={(e) => updateSettings({ defaultModel: e.target.value })}
+                    className="w-full appearance-none bg-surface border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-all cursor-pointer"
+                  >
+                    {getModels(settings.llmProvider).map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none"
+                    viewBox="0 0 14 14" fill="none"
+                  >
+                    <path d="M4 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               </div>
             </div>
           </Card>

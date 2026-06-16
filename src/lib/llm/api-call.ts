@@ -1,6 +1,5 @@
-"use client";
-
 import type { LLMProvider } from "@/types";
+import { DEFAULT_MODEL } from "@/lib/llm/models";
 
 interface LLMRequest {
   provider: LLMProvider;
@@ -26,17 +25,6 @@ const API_BASES: Record<LLMProvider, string> = {
   together: "https://api.together.xyz/v1",
   groq: "https://api.groq.com/openai/v1",
   openrouter: "https://openrouter.ai/api/v1",
-};
-
-const DEFAULT_MODELS: Record<LLMProvider, string> = {
-  openai: "gpt-4o",
-  anthropic: "claude-3-5-sonnet-20240620",
-  mistral: "mistral-large-latest",
-  google: "gemini-1.5-pro",
-  cohere: "command-r-plus",
-  together: "mixtral-8x22b",
-  groq: "mixtral-8x7b-32768",
-  openrouter: "auto",
 };
 
 async function callOpenAICompatible(
@@ -121,7 +109,7 @@ async function callAnthropic(
 
 export async function callLLM(params: LLMRequest): Promise<LLMResponse> {
   const baseUrl = API_BASES[params.provider];
-  const model = params.model || DEFAULT_MODELS[params.provider];
+  const model = params.model || DEFAULT_MODEL[params.provider];
 
   if (params.provider === "anthropic") {
     return callAnthropic(params.apiKey, model, params.systemPrompt, params.userPrompt);
