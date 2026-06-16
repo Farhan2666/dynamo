@@ -64,7 +64,7 @@ export function CreatePageClient() {
       setCopyElements(copy);
 
       const rawLayout = await runAgent3(context, copy, settings);
-      const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy);
+      const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
       const layout = { ...rawLayout, sections: mergedSections };
       setLayoutSchema(layout);
       addMutation(layout);

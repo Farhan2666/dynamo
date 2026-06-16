@@ -121,7 +121,7 @@ function SectionRenderer({ section }: { section: Section; index: number }) {
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-surface-tertiary" />
                   <div>
-                    <div className="text-body-sm font-medium">{content[`author_${i}`] || "Customer"}</div>
+                    <div className="text-body-sm font-medium">{content[`name_${i}`] || content[`author_${i}`] || "Customer"}</div>
                     <div className="text-caption text-text-muted">{content[`role_${i}`] || "Verified User"}</div>
                   </div>
                 </div>
@@ -151,22 +151,26 @@ function SectionRenderer({ section }: { section: Section; index: number }) {
             <p className="text-body-lg text-text-secondary">{content.subtitle || ""}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              { name: content.plan_1_name || "Basic", price: content.plan_1_price || "$9" },
-              { name: content.plan_2_name || "Pro", price: content.plan_2_price || "$29" },
-              { name: content.plan_3_name || "Enterprise", price: content.plan_3_price || "$99" },
-            ].map((plan) => (
-              <div key={plan.name} className="p-6 rounded-medium bg-surface border border-surface-tertiary shadow-soft text-center">
-                <h3 className="font-heading font-bold text-lg mb-2">{plan.name}</h3>
-                <div className="font-heading font-bold text-display mb-4">{plan.price}<span className="text-body-sm text-text-muted">/mo</span></div>
-                <ul className="text-body-sm text-text-secondary space-y-2 mb-6">
-                  <li>Feature A</li>
-                  <li>Feature B</li>
-                  <li>Feature C</li>
-                </ul>
-                <Button variant="outline" className="w-full">Choose Plan</Button>
-              </div>
-            ))}
+            {[1, 2, 3].map((i) => {
+              const name = content[`plan_${i}_name`] || (i === 1 ? "Basic" : i === 2 ? "Pro" : "Enterprise");
+              const price = content[`plan_${i}_price`] || (i === 1 ? "$9" : i === 2 ? "$29" : "$99");
+              const cta = content[`plan_${i}_cta`] || "Choose Plan";
+              return (
+                <div key={name} className="p-6 rounded-medium bg-surface border border-surface-tertiary shadow-soft text-center">
+                  <h3 className="font-heading font-bold text-lg mb-2">{name}</h3>
+                  <div className="font-heading font-bold text-display mb-4">{price}<span className="text-body-sm text-text-muted">/mo</span></div>
+                  <ul className="text-body-sm text-text-secondary space-y-2 mb-6">
+                    {[1, 2, 3, 4]
+                      .map((f) => content[`plan_${i}_feat_${f}`])
+                      .filter(Boolean)
+                      .map((feat) => (
+                        <li key={feat}>{feat}</li>
+                      ))}
+                  </ul>
+                  <Button variant="outline" className="w-full">{cta}</Button>
+                </div>
+              );
+            })}
           </div>
         </div>
       );

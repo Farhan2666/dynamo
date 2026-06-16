@@ -28,6 +28,7 @@ export interface ContextProfile {
   layoutPriority: SectionType[];
   audiencePersona: string;
   moodProfile: string;
+  language: string;
 }
 
 export interface CopyElement {
