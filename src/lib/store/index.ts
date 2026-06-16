@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type {
   Project,
   Generation,
@@ -83,17 +84,25 @@ interface SettingsStore {
   updateSettings: (partial: Partial<UserSettings>) => void;
 }
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
-  settings: {
-    llmProvider: "anthropic",
-    apiKey: "",
-    defaultModel: "claude-3-5-sonnet-20240620",
-    theme: "light",
-    historySize: 10,
-  },
-  updateSettings: (partial) =>
-    set((state) => ({ settings: { ...state.settings, ...partial } })),
-}));
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      settings: {
+        llmProvider: "anthropic",
+        apiKey: "",
+        defaultModel: "claude-3-5-sonnet-20240620",
+        theme: "light",
+        historySize: 10,
+      },
+      updateSettings: (partial) =>
+        set((state) => ({ settings: { ...state.settings, ...partial } })),
+    }),
+    {
+      name: "dynamo-settings",
+      partialize: (state) => ({ settings: state.settings }),
+    }
+  )
+);
 
 interface UIStore {
   sidebarOpen: boolean;
