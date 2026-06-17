@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateLayout } from "@/lib/agents/agent3-ui-engineer";
-import { callLLM } from "@/lib/llm/api-call";
+import { callLLMService } from "@/lib/llm/direct-call";
 import type { ContextProfile, LayoutSchema, CopyElement } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -61,14 +61,14 @@ Return ONLY valid JSON.`;
           : lang === "en"
           ? "\n\nREQUIRED: All text on the landing page MUST be in ENGLISH."
           : `\n\nREQUIRED: All text on the landing page MUST be in "${lang}".`;
-        const result = await callLLM({
-          provider: settings.llmProvider,
-          apiKey: settings.apiKey,
-          model: settings.defaultModel,
-          systemPrompt: system,
-          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.${langInstruction}`,
-          responseFormat: "json",
-        });
+        const result = await callLLMService(
+          settings.llmProvider,
+          settings.apiKey,
+          system,
+          `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.${langInstruction}`,
+          settings.defaultModel,
+          "json",
+        );
 
         const layout = JSON.parse(result.content) as LayoutSchema;
         return NextResponse.json({

@@ -11,8 +11,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function stripCodeFences(text: string): string {
-  return text.replace(/```(?:json)?\s*/gi, "").replace(/```\s*$/g, "").trim();
+function extractJsonFromResponse(text: string): string {
+  const codeMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeMatch) return codeMatch[1].trim();
+  let first = text.indexOf("{");
+  const bracket = text.indexOf("[");
+  if (bracket !== -1 && (first === -1 || bracket < first)) first = bracket;
+  if (first === -1) return text.trim();
+  const openChar = text[first];
+  const closeChar = openChar === "{" ? "}" : "]";
+  let depth = 0, end = -1;
+  for (let i = first; i < text.length; i++) {
+    if (text[i] === openChar) depth++;
+    if (text[i] === closeChar) { depth--; if (depth === 0) { end = i + 1; break; } }
+  }
+  if (end !== -1) return text.slice(first, end).trim();
+  return text.trim();
 }
 
 async function llmAnalyzeContext(
@@ -47,7 +61,7 @@ ONLY valid JSON. No markdown. No explanations.`;
       responseFormat: "json",
     });
 
-    return JSON.parse(stripCodeFences(result.content)) as ContextProfile;
+    return JSON.parse(extractJsonFromResponse(result.content)) as ContextProfile;
   } catch (e) {
     console.warn("[Agent 1] LLM error:", e instanceof Error ? e.message : e);
     return null;
@@ -89,7 +103,7 @@ ONLY valid JSON array starting with [ and ending with ]. No markdown.`;
       responseFormat: "json",
     });
 
-    return JSON.parse(stripCodeFences(result.content)) as CopyElement[];
+    return JSON.parse(extractJsonFromResponse(result.content)) as CopyElement[];
   } catch (e) {
     console.warn("[Agent 2] LLM error:", e instanceof Error ? e.message : e);
     return null;
@@ -190,7 +204,7 @@ ONLY valid JSON. No markdown.`;
       responseFormat: "json",
     });
 
-    const parsed = JSON.parse(stripCodeFences(result.content)) as LayoutSchema;
+    const parsed = JSON.parse(extractJsonFromResponse(result.content)) as LayoutSchema;
 
     const validSections = parsed.sections.map((s) => ({
       id: `${s.type}-${s.order}-${Math.random().toString(36).slice(2, 8)}`,
