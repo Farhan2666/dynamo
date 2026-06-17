@@ -26,7 +26,7 @@ function ToastItem({
   onDismiss,
 }: {
   message: string;
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "warning";
   onDismiss: () => void;
 }) {
   useEffect(() => {
@@ -38,6 +38,7 @@ function ToastItem({
     success: "bg-emerald-50 border-emerald-200 text-emerald-800",
     error: "bg-red-50 border-red-200 text-red-800",
     info: "bg-brand-primary/5 border-brand-primary/20 text-brand-primary",
+    warning: "bg-amber-50 border-amber-200 text-amber-800",
   };
 
   return (
@@ -63,6 +64,12 @@ function ToastItem({
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M8 7.333v4M8 4.667h.007" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      )}
+      {type === "warning" && (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 6v3.333M8 12h.007" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M1.333 12.667L8 2l6.667 10.667H1.333z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
         </svg>
       )}
       {message}

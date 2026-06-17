@@ -33,8 +33,11 @@ async function callOpenAICompatible(
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  provider: LLMProvider,
   responseFormat?: "json" | "text"
 ): Promise<LLMResponse> {
+  const supportsJsonMode = provider === "openai" || provider === "openrouter";
+
   const body: Record<string, unknown> = {
     model,
     messages: [
@@ -44,7 +47,7 @@ async function callOpenAICompatible(
     max_tokens: 4096,
   };
 
-  if (responseFormat === "json") {
+  if (responseFormat === "json" && supportsJsonMode) {
     body.response_format = { type: "json_object" };
   }
 
@@ -115,5 +118,5 @@ export async function callLLM(params: LLMRequest): Promise<LLMResponse> {
     return callAnthropic(params.apiKey, model, params.systemPrompt, params.userPrompt);
   }
 
-  return callOpenAICompatible(baseUrl, params.apiKey, model, params.systemPrompt, params.userPrompt, params.responseFormat);
+  return callOpenAICompatible(baseUrl, params.apiKey, model, params.systemPrompt, params.userPrompt, params.provider, params.responseFormat);
 }

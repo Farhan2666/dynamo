@@ -190,14 +190,14 @@ interface UIStore {
   showOnboarding: boolean;
   onboardingComplete: boolean;
   devicePreview: "desktop" | "tablet" | "phone";
-  toasts: Array<{ id: string; message: string; type: "success" | "error" | "info" }>;
+  toasts: Array<{ id: string; message: string; type: "success" | "error" | "info" | "warning" }>;
   toggleSidebar: () => void;
   toggleMutationPanel: () => void;
   setVibe: (vibe: string | null) => void;
   setShowOnboarding: (val: boolean) => void;
   completeOnboarding: () => void;
   setDevicePreview: (device: "desktop" | "tablet" | "phone") => void;
-  addToast: (message: string, type: "success" | "error" | "info") => void;
+  addToast: (message: string, type: "success" | "error" | "info" | "warning") => void;
   removeToast: (id: string) => void;
 }
 

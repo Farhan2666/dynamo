@@ -96,21 +96,30 @@ export function CreatePageClient() {
       setAgentProgress("agent5", false);
       setReviewReport(null);
 
-      const context = await runAgent1(prompt, settings);
+      const { result: context, source: src1 } = await runAgent1(prompt, settings);
       setContextProfile(context);
       setAgentProgress("agent1", true);
+      if (src1 === "fallback") {
+        addToast("Agent 1 (Context) using local fallback — AI not connected", "warning");
+      }
 
-      const copy = await runAgent2(context, settings);
+      const { result: copy, source: src2 } = await runAgent2(context, settings);
       setCopyElements(copy);
       setAgentProgress("agent2", true);
+      if (src2 === "fallback") {
+        addToast("Agent 2 (Copywriter) using local fallback — AI not connected", "warning");
+      }
 
       setAgentProgress("agent4", true);
-      const rawLayout = await runAgent3(context, copy, settings, vibeOverride);
+      const { result: rawLayout, source: src3 } = await runAgent3(context, copy, settings, vibeOverride);
       const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
       const layout = { ...rawLayout, sections: mergedSections };
       setLayoutSchema(layout);
       addMutation(layout);
       setAgentProgress("agent3", true);
+      if (src3 === "fallback") {
+        addToast("Agent 3 (UI Engineer) using local fallback — AI not connected", "warning");
+      }
 
       // Agent 5: Self-Review
       const report = runAgent5(layout, copy, context);
@@ -128,11 +137,14 @@ export function CreatePageClient() {
         setHeadlineVariants(scored);
       }
 
-      // Confetti!
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3500);
-
-      addToast(`Page generated! Quality score: ${report.overallScore}/100`, "success");
+      const usingAi = src1 === "ai" && src2 === "ai" && src3 === "ai";
+      if (usingAi) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3500);
+        addToast(`Page generated with AI! Quality score: ${report.overallScore}/100`, "success");
+      } else {
+        addToast(`Page generated (offline mode). Quality: ${report.overallScore}/100`, "info");
+      }
     } catch {
       addToast("Generation failed. Try a simpler prompt.", "error");
     } finally {
