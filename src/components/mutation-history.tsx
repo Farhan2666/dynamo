@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LayoutSchema, SectionType } from "@/types";
+import { useGenerationStore } from "@/lib/store";
 
 const SECTION_LABELS: Record<SectionType, string> = {
   hero: "Hero",
@@ -51,6 +52,10 @@ export function MutationHistory({ history, onSelect }: MutationHistoryProps) {
       </div>
     );
   }
+
+  const handleReset = () => {
+    useGenerationStore.getState().resetAll();
+  };
 
   const reversed = [...history].reverse();
 
@@ -169,6 +174,19 @@ export function MutationHistory({ history, onSelect }: MutationHistoryProps) {
           );
         })}
       </AnimatePresence>
+
+      <div className="mt-4 pt-3 border-t border-surface-tertiary">
+        <button
+          onClick={handleReset}
+          className="w-full py-2 text-body-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-soft transition-colors flex items-center justify-center gap-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 7a6 6 0 1112 0A6 6 0 011 7z" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          Generate New Page
+        </button>
+      </div>
     </div>
   );
 }
