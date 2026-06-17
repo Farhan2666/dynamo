@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
 Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
 
+CRITICAL: This page MUST NOT look AI-generated. Avoid generic buzzwords and symmetrical template patterns. Write like a real brand.
+
 Output JSON with:
 - layout (string): centered|asymmetric|split|full-width|grid
 - sections (array): each section has: id, type, order, content (object with ALL fields filled), twClasses (string array), spacing (compact|comfortable|spacious|breathing)
@@ -42,14 +44,17 @@ For section types, populate ALL content fields:
 - timeline: title, subtitle, year_1..5, event_1..5, desc_1..5
 - team: title, subtitle, name_1..4, role_1..4, bio_1..4
 
-Make content creative, specific to ${context.niche}, and persuasive. Return ONLY valid JSON.`;
+Make content creative, specific to ${context.niche}, and persuasive.
+Avoid: "cutting-edge", "next-gen", "revolutionary", "game-changer", "state-of-the-art".
+Use specific metrics, concrete details, and original phrasing.
+Return ONLY valid JSON.`;
 
         const result = await callLLM({
           provider: settings.llmProvider,
           apiKey: settings.apiKey,
           model: settings.defaultModel,
           systemPrompt: system,
-          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields — do not leave anything empty.`,
+          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.`,
           responseFormat: "json",
         });
 

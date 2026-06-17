@@ -32,6 +32,7 @@ export function CreatePageClient() {
     mutationHistory,
     agentProgress,
     addMutation,
+    setAgentProgress,
   } = useGenerationStore();
   const { settings } = useSettingsStore();
   const { addToast, showOnboarding, setShowOnboarding, toggleMutationPanel, mutationPanelOpen } = useUIStore();
@@ -57,17 +58,26 @@ export function CreatePageClient() {
     setIsGenerating(true);
 
     try {
+      setAgentProgress("agent1", false);
+      setAgentProgress("agent2", false);
+      setAgentProgress("agent3", false);
+      setAgentProgress("agent4", false);
+
       const context = await runAgent1(prompt, settings);
       setContextProfile(context);
+      setAgentProgress("agent1", true);
 
       const copy = await runAgent2(context, settings);
       setCopyElements(copy);
+      setAgentProgress("agent2", true);
 
+      setAgentProgress("agent4", true);
       const rawLayout = await runAgent3(context, copy, settings);
       const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
       const layout = { ...rawLayout, sections: mergedSections };
       setLayoutSchema(layout);
       addMutation(layout);
+      setAgentProgress("agent3", true);
 
       addToast("Page generated successfully!", "success");
     } catch {
@@ -206,6 +216,7 @@ export function CreatePageClient() {
                       {[
                         { id: "agent1" as const, label: "Context Analyzer", desc: contextProfile ? "Niche detected, palette built" : "Analyzing market..." },
                         { id: "agent2" as const, label: "Copywriter", desc: "Crafting headlines, CTAs..." },
+                        { id: "agent4" as const, label: "Research Analyst", desc: "Gathering industry data & trends..." },
                         { id: "agent3" as const, label: "UI Engineer", desc: "Assembling layout..." },
                       ].map((agent) => (
                         <div

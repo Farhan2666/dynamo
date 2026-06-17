@@ -3,6 +3,7 @@ import { analyzeContext } from "./agent1-context";
 import { generateCopy } from "./agent2-copywriter";
 import { generateLayout } from "./agent3-ui-engineer";
 import { callLLM } from "@/lib/llm/api-call";
+import { runResearchAgent, applyResearchToPrompt } from "./agent4-researcher";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -70,7 +71,8 @@ Be creative and persuasive. Return ONLY valid JSON.`;
 async function llmGenerateLayout(
   context: ContextProfile,
   copy: CopyElement[],
-  settings: UserSettings
+  settings: UserSettings,
+  researchContext?: string
 ): Promise<LayoutSchema | null> {
   try {
     const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
@@ -78,13 +80,15 @@ async function llmGenerateLayout(
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
 Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
 
+CRITICAL: This page MUST NOT look AI-generated. Avoid generic patterns. Make it look like a real, hand-crafted brand site.
+
 Output JSON with:
 - layout (string): centered|asymmetric|split|full-width|grid
 - sections (array): each section has: id, type, order, content (object with ALL fields filled), twClasses (string array), spacing (compact|comfortable|spacious|breathing)
 - animations (object with type fade|slide|bounce|scale, intensity 1-5, springPhysics boolean)
 - twConfig (string array)
 
-For section types, populate content fields based on type:
+For section types, populate ALL content fields:
 - hero: headline, subheadline, cta, badge (optional short tag)
 - features: title, subtitle, feature_1_title, feature_1_desc, feature_2_title, feature_2_desc, feature_3_title, feature_3_desc
 - testimonials: title, subtitle, quote_1, name_1, role_1, company_1, quote_2, name_2, role_2, company_2
@@ -99,14 +103,22 @@ For section types, populate content fields based on type:
 - timeline: title, subtitle, year_1..5, event_1..5, desc_1..5
 - team: title, subtitle, name_1..4, role_1..4, bio_1..4
 
-Make content creative, specific to ${context.niche}, and persuasive. Use the provided copy as inspiration. Return ONLY valid JSON.`;
+Make content feel BRAND-SPECIFIC, not generic. Use specific metrics, concrete details, and original phrasing. Avoid:
+- "cutting-edge", "next-gen", "revolutionary", "game-changer", "state-of-the-art"
+- Generic stock phrases that could apply to any business
+- Perfectly symmetrical structures that scream "AI template"
+
+Instead write like a real human marketer: specific, opinionated, with a clear point of view.`;
+
+    const researchBlock = researchContext ? `\n\nRESEARCH INSIGHTS:\n${researchContext}` : "";
+    const userMsg = `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}.${researchBlock}\n\nGenerate ALL section content fields — do not leave anything empty. Make every section feel like it was written by a human copywriter, not an AI.`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
       apiKey: settings.apiKey,
       model: settings.defaultModel,
       systemPrompt: system,
-      userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields — do not leave anything empty.`,
+      userPrompt: userMsg,
       responseFormat: "json",
     });
 
@@ -145,8 +157,17 @@ export async function runAgent3(
   copy?: CopyElement[],
   settings?: UserSettings
 ): Promise<LayoutSchema> {
+  let researchContext: string | undefined;
+
+  if (settings?.apiKey) {
+    const research = await runResearchAgent(context, settings);
+    if (research) {
+      researchContext = applyResearchToPrompt(context, research);
+    }
+  }
+
   if (settings?.apiKey && copy) {
-    const llmResult = await llmGenerateLayout(context, copy, settings);
+    const llmResult = await llmGenerateLayout(context, copy, settings, researchContext);
     if (llmResult) return llmResult;
   }
   await sleep(500 + Math.random() * 500);

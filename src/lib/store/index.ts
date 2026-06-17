@@ -39,14 +39,14 @@ interface GenerationStore {
   layoutSchema: LayoutSchema | null;
   mutationHistory: LayoutSchema[];
   isGenerating: boolean;
-  agentProgress: { agent1: boolean; agent2: boolean; agent3: boolean };
+  agentProgress: { agent1: boolean; agent2: boolean; agent3: boolean; agent4: boolean };
   setPrompt: (prompt: string) => void;
   setContextProfile: (profile: ContextProfile) => void;
   setCopyElements: (elements: CopyElement[]) => void;
   setLayoutSchema: (schema: LayoutSchema) => void;
   addMutation: (schema: LayoutSchema) => void;
   setIsGenerating: (val: boolean) => void;
-  setAgentProgress: (agent: "agent1" | "agent2" | "agent3", done: boolean) => void;
+  setAgentProgress: (agent: "agent1" | "agent2" | "agent3" | "agent4", done: boolean) => void;
   resetAll: () => void;
 }
 
@@ -57,18 +57,18 @@ const initialGenState = {
   layoutSchema: null,
   mutationHistory: [],
   isGenerating: false,
-  agentProgress: { agent1: false, agent2: false, agent3: false },
+  agentProgress: { agent1: false, agent2: false, agent3: false, agent4: false },
 };
 
 export const useGenerationStore = create<GenerationStore>((set) => ({
   ...initialGenState,
   setPrompt: (prompt) => set({ prompt }),
   setContextProfile: (profile) =>
-    set({ contextProfile: profile, agentProgress: { agent1: true, agent2: false, agent3: false } }),
+    set({ contextProfile: profile, agentProgress: { agent1: true, agent2: false, agent3: false, agent4: false } }),
   setCopyElements: (elements) =>
-    set({ copyElements: elements, agentProgress: { agent1: true, agent2: true, agent3: false } }),
+    set({ copyElements: elements, agentProgress: { agent1: true, agent2: true, agent3: false, agent4: false } }),
   setLayoutSchema: (schema) =>
-    set({ layoutSchema: schema, agentProgress: { agent1: true, agent2: true, agent3: true } }),
+    set({ layoutSchema: schema, agentProgress: { agent1: true, agent2: true, agent3: true, agent4: true } }),
   addMutation: (schema) =>
     set((state) => ({ mutationHistory: [...state.mutationHistory, schema] })),
   setIsGenerating: (val) => set({ isGenerating: val }),
