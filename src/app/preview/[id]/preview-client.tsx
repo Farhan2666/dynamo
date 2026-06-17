@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useGenerationStore, useUIStore } from "@/lib/store";
 import { Button } from "@/components/ui";
 import type { Section, MutationOptions } from "@/types";
@@ -1259,6 +1260,7 @@ export function PreviewPageClient() {
   const { layoutSchema, addMutation, contextProfile, copyElements } = useGenerationStore();
   const { addToast } = useUIStore();
   const [device, setDevice] = useState("desktop");
+  const router = useRouter();
   const [mutationStrength, setMutationStrength] = useState(3);
   const [showMutationPanel, setShowMutationPanel] = useState(false);
   const [exportMode, setExportMode] = useState(false);
@@ -1455,6 +1457,22 @@ export function PreviewPageClient() {
             >
               {exportMode ? "Close Export" : "Export HTML"}
             </Button>
+          </div>
+
+          <div className="pt-4 border-t border-surface-tertiary">
+            <button
+              onClick={() => {
+                useGenerationStore.getState().resetAll();
+                router.push("/create");
+              }}
+              className="w-full py-2 text-body-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-soft transition-colors flex items-center justify-center gap-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 7a6 6 0 1112 0A6 6 0 011 7z" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+              Generate New Page
+            </button>
           </div>
         </div>
       )}
