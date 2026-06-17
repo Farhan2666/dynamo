@@ -21,19 +21,22 @@ async function llmAnalyzeContext(
 ): Promise<ContextProfile | null> {
   try {
     const lang = detectLanguage(prompt);
-    const system = `You are a market context analyzer. Analyze the business description and output a JSON object with:
-- niche (string): business category
-- industryTags (array of strings): relevant keywords
-- primaryColor (hex string): best primary brand color based on color psychology
-- secondaryColor (hex string): best secondary brand color
-- primaryFont (string): recommended font
-- secondaryFont (string): secondary font
-- layoutPriority (array of strings): preferred section order
-- audiencePersona (string): target audience description
-- moodProfile (string): one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced
-- language (string): "${lang}"
+    const system = `You are a market context analyzer. Analyze the business description and output ONLY valid JSON:
+{
+  "niche": "exact business category (be specific, not just 'saas' or 'tech')",
+  "industryTags": ["3-5 specific keywords about this business"],
+  "primaryColor": "hex color based on brand psychology for this industry",
+  "secondaryColor": "hex secondary color",
+  "primaryFont": "heading font (Inter, Sora, or Poppins)",
+  "secondaryFont": "body font (Inter, Sora, or Poppins)",
+  "layoutPriority": ["hero", "features", "testimonials", "cta"],
+  "audiencePersona": "specific target audience description",
+  "moodProfile": "one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced",
+  "language": "${lang}"
+}
 
-ONLY valid JSON. No markdown, no explanations.`;
+The MOST IMPORTANT rule: niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce"; "vegan bakery" not "food"). Use terms from the user's prompt directly.
+ONLY valid JSON. No markdown. No explanations.`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
@@ -58,21 +61,31 @@ async function llmGenerateCopy(
   try {
     const lang = context.language || "en";
     const langNote = lang === "id"
-      ? "BAHASA: Semua teks harus dalam BAHASA INDONESIA."
-      : `LANGUAGE: All text must be in ${lang === "en" ? "ENGLISH" : `"${lang}"`}.`;
-    const system = `You are a conversion copywriter. Generate marketing copy for a landing page targeting ${context.audiencePersona} in the ${context.niche} industry.
-Mood: ${context.moodProfile}.
+      ? "BAHASA: Semua teks harus dalam BAHASA INDONESIA. Gunakan kata-kata yang relevan dengan industri ini."
+      : `LANGUAGE: All text must be in ${lang === "en" ? "ENGLISH" : `"${lang}"`}. Use industry-specific vocabulary.`;
+    const system = `You are a conversion copywriter for a ${context.niche} landing page targeting ${context.audiencePersona}.
+Mood/profile: ${context.moodProfile} | ${context.audiencePersona}
 ${langNote}
-Output a JSON array of objects with properties: type (headline|subheader|cta|benefit|seo), content (string), variants (string[]).
 
-ONLY valid JSON array. No markdown. Start with [ and end with ].`;
+CRITICAL RULES:
+- Create ORIGINAL, UNIQUE copy specific to ${context.niche} — do NOT use generic phrases like "transform your business" or "take your productivity to the next level"
+- Use specific vocabulary related to ${context.niche} and ${context.industryTags.join(", ")}
+- Each headline/subheader/cta must feel like it was written by someone who deeply understands this specific niche
+- Avoid: "cutting-edge", "next-gen", "revolutionary", "game-changer", "innovative", "seamless"
+
+Output a JSON array of objects with:
+- type: "headline" | "subheader" | "cta" | "benefit" | "seo"
+- content: string (the copy text - MUST be niche-specific)
+- variants: string[] (2-3 alternative phrasings)
+
+ONLY valid JSON array starting with [ and ending with ]. No markdown.`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
       apiKey: settings.apiKey,
       model: settings.defaultModel,
       systemPrompt: system,
-      userPrompt: `Generate copy for ${context.niche} targeting ${context.audiencePersona}. Tags: ${context.industryTags.join(", ")}. Language: ${lang}.`,
+      userPrompt: `Write conversion copy for a ${context.niche} business targeting ${context.audiencePersona}. Tags: ${context.industryTags.join(", ")}. Language: ${lang}. Be specific to this niche, not generic.`,
       responseFormat: "json",
     });
 
@@ -85,55 +98,53 @@ ONLY valid JSON array. No markdown. Start with [ and end with ].`;
 
 async function llmGenerateLayout(
   context: ContextProfile,
-  copy: CopyElement[],
   settings: UserSettings,
   researchContext?: string
 ): Promise<LayoutSchema | null> {
   try {
     const lang = context.language || "en";
     const langNote = lang === "id"
-      ? "BAHASA: Semua teks konten WAJIB BAHASA INDONESIA."
-      : `LANGUAGE: All content MUST be in ${lang === "en" ? "ENGLISH" : `"${lang}"`}.`;
-    const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
-    const system = `You are a world-class UI engineer. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
+      ? "BAHASA: Semua teks WAJIB BAHASA INDONESIA."
+      : `LANGUAGE: All text in ${lang === "en" ? "ENGLISH" : `"${lang}"`}.`;
+
+    const system = `You are a UI engineer designing a landing page for "${context.niche}" (mood: ${context.moodProfile}) targeting ${context.audiencePersona}.
 ${langNote}
-Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
-Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
 
-CRITICAL: Make it look like a real hand-crafted brand site, not AI-generated.
+Brand assets:
+- Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}
+- Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}
 
-Output JSON:
-- layout: centered|asymmetric|split|full-width|grid
-- sections: array of {id, type, order, content (ALL fields filled), twClasses: string[], spacing: compact|comfortable|spacious|breathing}
-- animations: {type: fade|slide|bounce|scale, intensity: 1-5, springPhysics: boolean}
-- twConfig: string[]
+Output JSON for layout STRUCTURE ONLY (no copy/content fields). Follow this EXACT format:
 
-Section content fields:
-- hero: headline, subheadline, cta, badge
-- features: title, subtitle, feature_1_title, feature_1_desc, feature_2_title, feature_2_desc, feature_3_title, feature_3_desc
-- testimonials: title, subtitle, quote_1, name_1, role_1, company_1, quote_2, name_2, role_2, company_2
-- pricing: title, subtitle, plan_1_name, plan_1_desc, plan_1_price, plan_1_feat_1..4, plan_1_cta, plan_2_name, plan_2_desc, plan_2_price, plan_2_feat_1..4, plan_2_cta, plan_3_name, plan_3_desc, plan_3_price, plan_3_feat_1..4, plan_3_cta
-- cta: headline, subheadline, button
-- faq: title, subtitle, q_1, a_1, q_2, a_2, q_3, a_3
-- stats: title, stat_1_value, stat_1_label, stat_2_value, stat_2_label, stat_3_value, stat_3_label, stat_4_value, stat_4_label
-- gallery: title, subtitle
-- logos: title, logo_1..logo_6
-- contact: title, subtitle, email, phone, address, cta
-- comparison: title, subtitle, row_1..6, our_val_1..6, their_val_1..6
-- timeline: title, subtitle, year_1..5, event_1..5, desc_1..5
-- team: title, subtitle, name_1..4, role_1..4, bio_1..4
+{
+  "layout": "centered|asymmetric|split|full-width|grid (pick best for ${context.niche})",
+  "sections": [
+    {
+      "type": "hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team",
+      "order": 1,
+      "twClasses": ["tailwind classes like py-20 md:py-32"],
+      "spacing": "compact|comfortable|spacious|breathing"
+    }
+  ],
+  "animations": {
+    "type": "fade|slide|bounce|scale",
+    "intensity": 1-5,
+    "springPhysics": true or false
+  },
+  "twConfig": ["font-heading: ${context.primaryFont}", "font-body: ${context.secondaryFont}"]
+}
 
-Use specific details, not generic fluff. Avoid: "cutting-edge", "next-gen", "revolutionary".
+RULES:
+- Pick 4-8 sections that tell the best story for "${context.niche}" — choose section TYPES and ORDER that match this specific industry
+- DO NOT include any content fields (no headline, subheadline, cta, etc.) — structure only
+- layout: choose the best style for ${context.niche} (not always the same one)
+- twClasses: vary Tailwind padding based on section importance
+- spacing: vary per section
 
-ONLY valid JSON. No markdown. Start with { and end with }.`;
+ONLY valid JSON. No markdown. No content fields.`;
 
-    const researchBlock = researchContext ? `\n\nRESEARCH:\n${researchContext}` : "";
-    const langInstruction = lang === "id"
-      ? "\nWAJIB: Semua teks BAHASA INDONESIA."
-      : lang === "en"
-      ? "\nREQUIRED: All text in ENGLISH."
-      : `\nREQUIRED: All text in "${lang}".`;
-    const userMsg = `Design a landing page for ${context.niche} targeting ${context.audiencePersona}. Copy inspiration:\n${copySummary}.${researchBlock}${langInstruction}`;
+    const researchBlock = researchContext ? `\n\nRelevant research about ${context.niche}:\n${researchContext}` : "";
+    const userMsg = `Design a landing page structure for ${context.niche} (${context.moodProfile}) targeting ${context.audiencePersona}.${researchBlock}`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
@@ -144,7 +155,23 @@ ONLY valid JSON. No markdown. Start with { and end with }.`;
       responseFormat: "json",
     });
 
-    return JSON.parse(stripCodeFences(result.content)) as LayoutSchema;
+    const parsed = JSON.parse(stripCodeFences(result.content)) as LayoutSchema;
+
+    const validSections = parsed.sections.map((s) => ({
+      id: `${s.type}-${s.order}-${Math.random().toString(36).slice(2, 8)}`,
+      type: s.type,
+      order: s.order,
+      content: {},
+      twClasses: s.twClasses || [`py-${12 + s.order * 4} md:py-${16 + s.order * 4}`],
+      spacing: s.spacing || ("comfortable" as const),
+    }));
+
+    return {
+      layout: parsed.layout || "centered",
+      sections: validSections,
+      animations: parsed.animations || { type: "fade", intensity: 3, springPhysics: false },
+      twConfig: parsed.twConfig || [],
+    };
   } catch (e) {
     console.warn("[Agent 3] LLM error:", e instanceof Error ? e.message : e);
     return null;
@@ -154,7 +181,7 @@ ONLY valid JSON. No markdown. Start with { and end with }.`;
 export async function runAgent1(
   prompt: string,
   settings?: UserSettings
-): Promise<{ result: ContextProfile; source: "ai" | "fallback"; error?: string }> {
+): Promise<{ result: ContextProfile; source: "ai" | "fallback" }> {
   if (settings?.apiKey) {
     const llmResult = await llmAnalyzeContext(prompt, settings);
     if (llmResult) return { result: llmResult, source: "ai" };
@@ -166,7 +193,7 @@ export async function runAgent1(
 export async function runAgent2(
   context: ContextProfile,
   settings?: UserSettings
-): Promise<{ result: CopyElement[]; source: "ai" | "fallback"; error?: string }> {
+): Promise<{ result: CopyElement[]; source: "ai" | "fallback" }> {
   if (settings?.apiKey) {
     const llmResult = await llmGenerateCopy(context, settings);
     if (llmResult) return { result: llmResult, source: "ai" };
@@ -180,7 +207,7 @@ export async function runAgent3(
   copy?: CopyElement[],
   settings?: UserSettings,
   vibeOverride?: string | null
-): Promise<{ result: LayoutSchema; source: "ai" | "fallback"; error?: string }> {
+): Promise<{ result: LayoutSchema; source: "ai" | "fallback" }> {
   const effectiveContext = vibeOverride && vibeOverride !== ""
     ? { ...context, moodProfile: vibeOverride }
     : context;
@@ -198,8 +225,8 @@ export async function runAgent3(
     }
   }
 
-  if (settings?.apiKey && copy) {
-    const llmResult = await llmGenerateLayout(effectiveContext, copy, settings, researchContext);
+  if (settings?.apiKey) {
+    const llmResult = await llmGenerateLayout(effectiveContext, settings, researchContext);
     if (llmResult) return { result: llmResult, source: "ai" };
   }
   await sleep(500 + Math.random() * 500);
@@ -213,3 +240,5 @@ export function runAgent5(
 ): ReviewReport {
   return runSelfReview(layout, copy, context);
 }
+
+
