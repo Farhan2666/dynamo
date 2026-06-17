@@ -22,12 +22,14 @@ function getSectionLabel(type: string, lang: string): string {
 
 function heroHTML(s: Section, c: ContextProfile): string {
   const h = s.content;
+  const imgHtml = h.image ? `<div style="margin-top:2rem;"><img src="${h.image}" alt="Hero" style="max-width:100%;border-radius:0.75rem;box-shadow:0 8px 32px rgba(0,0,0,0.15);" /></div>` : "";
   return `<section style="padding:6rem 1.5rem;background:linear-gradient(135deg,${c.primaryColor},${c.secondaryColor});color:white;text-align:center;">
   <div style="max-width:1100px;margin:0 auto;">
     ${h.badge ? `<span style="display:inline-block;padding:0.25rem 0.75rem;border-radius:999px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);font-size:0.875rem;margin-bottom:1.5rem;">${h.badge}</span>` : ""}
     <h1 style="font-size:3.5rem;font-weight:800;margin:0 0 1rem;line-height:1.15;">${h.headline}</h1>
     <p style="font-size:1.25rem;opacity:0.85;max-width:650px;margin:0 auto 2rem;">${h.subheadline}</p>
     <a href="#" style="display:inline-block;padding:0.875rem 2rem;border-radius:0.5rem;background:white;color:${c.primaryColor};font-weight:600;text-decoration:none;">${h.cta || "Get Started"}</a>
+    ${imgHtml}
   </div>
 </section>`;
 }
@@ -139,12 +141,18 @@ function statsHTML(s: Section): string {
 
 function galleryHTML(s: Section): string {
   const h = s.content;
+  const imgs = [1, 2, 3, 4, 5, 6].map((i) => {
+    const url = h[`img_${i}`];
+    return url
+      ? `<div style="aspect-ratio:4/3;border-radius:0.5rem;overflow:hidden;"><img src="${url}" alt="Gallery ${i}" style="width:100%;height:100%;object-fit:cover;" /></div>`
+      : `<div style="aspect-ratio:4/3;border-radius:0.5rem;background:linear-gradient(135deg,#E5E5F0,#F0F0FF);"></div>`;
+  }).join("");
   return `<section style="padding:5rem 1.5rem;background:#FFFFFF;">
   <div style="max-width:1000px;margin:0 auto;">
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 0.75rem;">${h.title}</h2>
     <p style="text-align:center;color:#555570;margin:0 0 2.5rem;">${h.subtitle}</p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
-      ${[1, 2, 3, 4, 5, 6].map(() => `<div style="aspect-ratio:4/3;border-radius:0.5rem;background:linear-gradient(135deg,#E5E5F0,#F0F0FF);"></div>`).join("")}
+      ${imgs}
     </div>
   </div>
 </section>`;
