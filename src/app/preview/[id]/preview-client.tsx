@@ -1230,7 +1230,7 @@ export function PreviewPageClient() {
             className="mx-auto bg-white shadow-strong min-h-full transition-all duration-[var(--transition-base)]"
             style={{ maxWidth: currentDevice.width }}
           >
-            {layoutSchema.sections.map((section, idx) => (
+            {layoutSchema.sections.map((section) => (
               <SectionPreview key={section.id} section={section} />
             ))}
           </div>
