@@ -37,36 +37,40 @@ export function SetupPageClient() {
   const { addToast } = useUIStore();
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [connStatus, setConnStatus] = useState<"idle" | "testing" | "connected" | "error">("idle");
 
   const handleTest = useCallback(async () => {
     setTesting(true);
+    setConnStatus("testing");
     try {
       const valid = validateKey(settings.apiKey, settings.llmProvider);
       if (!valid) {
         addToast("Invalid API key format for this provider", "error");
         setTesting(false);
+        setConnStatus("error");
         return;
       }
-      const res = await fetch("/api/v1/analyze", {
+      const res = await fetch("/api/v1/test-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "test connection",
-          settings: {
-            llmProvider: settings.llmProvider,
-            apiKey: settings.apiKey,
-            defaultModel: settings.defaultModel,
-          },
+          provider: settings.llmProvider,
+          apiKey: settings.apiKey,
         }),
       });
       if (res.ok) {
-        addToast("API key validated — LLM responded", "success");
+        const data = await res.json();
+        const modelLabel = data.model ? ` (${data.model})` : "";
+        addToast(`Connected${modelLabel}`, "success");
+        setConnStatus("connected");
       } else {
-        const err = await res.text();
-        addToast(`API error: ${err.slice(0, 100)}`, "error");
+        const err = await res.json();
+        addToast(`Connection failed: ${err.error?.slice(0, 80) || "Invalid key"}`, "error");
+        setConnStatus("error");
       }
     } catch {
-      addToast("Connection failed. Check your key & network.", "error");
+      addToast("Network error. Check your connection.", "error");
+      setConnStatus("error");
     }
     setTesting(false);
   }, [settings, addToast]);
@@ -148,7 +152,7 @@ export function SetupPageClient() {
                 }
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -165,6 +169,18 @@ export function SetupPageClient() {
                 >
                   Test Connection
                 </Button>
+                {connStatus === "connected" && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-caption font-medium border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Connected
+                  </span>
+                )}
+                {connStatus === "error" && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-caption font-medium border border-red-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Failed
+                  </span>
+                )}
               </div>
 
               <div>

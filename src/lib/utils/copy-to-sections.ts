@@ -65,6 +65,60 @@ const PRICING_TEMPLATES: Record<string, { names: string[]; descs: string[]; feat
   },
 };
 
+const GALLERY_TEMPLATES: Record<string, { tags: string[]; categories: string[] }> = {
+  en: { tags: ["Design", "Development", "Branding", "Strategy", "Creative", "Innovation"], categories: ["All", "Web", "Mobile", "Brand", "Print"] },
+  id: { tags: ["Desain", "Pengembangan", "Branding", "Strategi", "Kreatif", "Inovasi"], categories: ["Semua", "Web", "Mobile", "Brand", "Cetak"] },
+};
+
+const LOGOS_TEMPLATES: Record<string, string[]> = {
+  en: ["TechFlow", "BrightMind", "NexGen", "Pinnacle", "CloudPeak", "StarForge"],
+  id: ["TechFlow", "BrightMind", "NexGen", "Pinnacle", "CloudPeak", "StarForge"],
+};
+
+const CONTACT_TEMPLATES: Record<string, { email: string; phone: string; address: string; hours: string }> = {
+  en: { email: "hello@company.com", phone: "+1 (555) 000-0000", address: "123 Innovation Drive, San Francisco, CA 94105", hours: "Mon-Fri 9AM-6PM" },
+  id: { email: "halo@perusahaan.com", phone: "+62 21 0000 0000", address: "Jl. Inovasi No. 123, Jakarta", hours: "Sen-Jum 9AM-6PM" },
+};
+
+const TEAM_TEMPLATES: Record<string, { names: string[]; roles: string[]; bios: string[] }> = {
+  en: {
+    names: ["Alex Morgan", "Jordan Lee", "Taylor Kim", "Casey Rivera"],
+    roles: ["CEO & Founder", "CTO", "Head of Design", "VP Engineering"],
+    bios: ["15+ years in tech. Previously led teams at Google & Stripe.", "Ex-Apple, built infrastructure serving 100M+ users.", "Award-winning designer. Previously at Airbnb.", "Scaled engineering org from 5 to 100 in 2 years."],
+  },
+  id: {
+    names: ["Alex Morgan", "Jordan Lee", "Taylor Kim", "Casey Rivera"],
+    roles: ["CEO & Pendiri", "CTO", "Kepala Desain", "VP Teknik"],
+    bios: ["15+ tahun di tech. Sebelumnya pimpin tim di Google & Stripe.", "Ex-Apple, bangun infrastruktur layani 100M+ pengguna.", "Desainer pemenang penghargaan. Sebelumnya di Airbnb.", "Skalakan org teknik dari 5 ke 100 dalam 2 tahun."],
+  },
+};
+
+const COMPARISON_TEMPLATES: Record<string, { rows: string[]; our_vals: string[]; their_vals: string[] }> = {
+  en: {
+    rows: ["Price", "Setup Time", "Support", "Security", "Uptime", "Integrations"],
+    our_vals: ["$29/mo", "5 minutes", "24/7 Priority", "SOC 2 Type II", "99.99%", "200+"],
+    their_vals: ["$99/mo", "2 weeks", "Email only", "Basic", "99.5%", "50+"],
+  },
+  id: {
+    rows: ["Harga", "Waktu Setup", "Dukungan", "Keamanan", "Waktu Aktif", "Integrasi"],
+    our_vals: ["Rp299rb/bln", "5 menit", "Prioritas 24/7", "SOC 2 Type II", "99.99%", "200+"],
+    their_vals: ["Rp999rb/bln", "2 minggu", "Email saja", "Dasar", "99.5%", "50+"],
+  },
+};
+
+const TIMELINE_TEMPLATES: Record<string, { years: string[]; events: string[]; descs: string[] }> = {
+  en: {
+    years: ["2020", "2021", "2022", "2023", "2024"],
+    events: ["Founded", "First 1K Users", "Series A", "Global Launch", "1M Users"],
+    descs: ["Started with a team of 3 in a garage", "Reached 1,000 users organically", "Raised $10M from top VCs", "Expanded to 50+ countries", "Hit the 1M user milestone"],
+  },
+  id: {
+    years: ["2020", "2021", "2022", "2023", "2024"],
+    events: ["Didirikan", "1.000 Pengguna Pertama", "Seri A", "Peluncuran Global", "1Juta Pengguna"],
+    descs: ["Dimulai dengan tim 3 orang di garasi", "Capai 1.000 pengguna secara organik", "Raise $10M dari VC top", "Ekspansi ke 50+ negara", "Capai milestone 1 juta pengguna"],
+  },
+};
+
 const FAQ_TEMPLATES: Record<string, { q: string[]; a: string[] }> = {
   en: {
     q: [
@@ -135,6 +189,12 @@ export function mergeCopyIntoSections(
   const pTemplates = PRICING_TEMPLATES[lang] || PRICING_TEMPLATES.en;
   const faqTemplates = FAQ_TEMPLATES[lang] || FAQ_TEMPLATES.en;
   const sTemplates = STATS_TEMPLATES[lang] || STATS_TEMPLATES.en;
+  const gTemplates = GALLERY_TEMPLATES[lang] || GALLERY_TEMPLATES.en;
+  const lTemplates = LOGOS_TEMPLATES[lang] || LOGOS_TEMPLATES.en;
+  const cTemplates = CONTACT_TEMPLATES[lang] || CONTACT_TEMPLATES.en;
+  const teamTemplates = TEAM_TEMPLATES[lang] || TEAM_TEMPLATES.en;
+  const compTemplates = COMPARISON_TEMPLATES[lang] || COMPARISON_TEMPLATES.en;
+  const tlTemplates = TIMELINE_TEMPLATES[lang] || TIMELINE_TEMPLATES.en;
 
   function shuffled<T>(arr: T[]): T[] {
     return [...arr].sort(() => Math.random() - 0.5);
@@ -270,6 +330,125 @@ export function mergeCopyIntoSections(
             stat_3_label: sTemplates.labels[2],
             stat_4_value: sTemplates.values[3],
             stat_4_label: sTemplates.labels[3],
+          },
+        };
+
+      case "gallery":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Portofolio" : "Our Work"),
+            subtitle: section.content.subtitle || (lang === "id" ? "Lihat hasil karya terbaik kami" : "Browse our latest projects"),
+            category_1: gTemplates.categories[0],
+            category_2: gTemplates.categories[1],
+            category_3: gTemplates.categories[2],
+            category_4: gTemplates.categories[3],
+            tag_1: gTemplates.tags[0],
+            tag_2: gTemplates.tags[1],
+            tag_3: gTemplates.tags[2],
+            tag_4: gTemplates.tags[3],
+            tag_5: gTemplates.tags[4],
+            tag_6: gTemplates.tags[5],
+          },
+        };
+
+      case "logos":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Dipercaya Oleh" : "Trusted By"),
+            logo_1: lTemplates[0],
+            logo_2: lTemplates[1],
+            logo_3: lTemplates[2],
+            logo_4: lTemplates[3],
+            logo_5: lTemplates[4],
+            logo_6: lTemplates[5],
+          },
+        };
+
+      case "contact":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Hubungi Kami" : "Get in Touch"),
+            subtitle: section.content.subtitle || (lang === "id" ? "Kami siap membantu" : "We'd love to hear from you"),
+            email: cTemplates.email,
+            phone: cTemplates.phone,
+            address: cTemplates.address,
+            hours: cTemplates.hours,
+            cta: lang === "id" ? "Kirim Pesan" : "Send Message",
+          },
+        };
+
+      case "comparison":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Bandingkan" : "Why Choose Us"),
+            subtitle: section.content.subtitle || subheadline,
+            row_1: compTemplates.rows[0],
+            row_2: compTemplates.rows[1],
+            row_3: compTemplates.rows[2],
+            row_4: compTemplates.rows[3],
+            row_5: compTemplates.rows[4],
+            row_6: compTemplates.rows[5],
+            our_val_1: compTemplates.our_vals[0],
+            our_val_2: compTemplates.our_vals[1],
+            our_val_3: compTemplates.our_vals[2],
+            our_val_4: compTemplates.our_vals[3],
+            our_val_5: compTemplates.our_vals[4],
+            our_val_6: compTemplates.our_vals[5],
+            their_val_1: compTemplates.their_vals[0],
+            their_val_2: compTemplates.their_vals[1],
+            their_val_3: compTemplates.their_vals[2],
+            their_val_4: compTemplates.their_vals[3],
+            their_val_5: compTemplates.their_vals[4],
+            their_val_6: compTemplates.their_vals[5],
+          },
+        };
+
+      case "timeline":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Perjalanan Kami" : "Our Journey"),
+            subtitle: section.content.subtitle || (lang === "id" ? "Dari awal hingga sekarang" : "From the beginning to now"),
+            year_1: tlTemplates.years[0],
+            year_2: tlTemplates.years[1],
+            year_3: tlTemplates.years[2],
+            year_4: tlTemplates.years[3],
+            year_5: tlTemplates.years[4],
+            event_1: tlTemplates.events[0],
+            event_2: tlTemplates.events[1],
+            event_3: tlTemplates.events[2],
+            event_4: tlTemplates.events[3],
+            event_5: tlTemplates.events[4],
+            desc_1: tlTemplates.descs[0],
+            desc_2: tlTemplates.descs[1],
+            desc_3: tlTemplates.descs[2],
+            desc_4: tlTemplates.descs[3],
+            desc_5: tlTemplates.descs[4],
+          },
+        };
+
+      case "team":
+        return {
+          ...section,
+          content: {
+            title: section.content.title || (lang === "id" ? "Tim Kami" : "Meet the Team"),
+            subtitle: section.content.subtitle || (lang === "id" ? "Orang di balik kesuksesan" : "The people behind the vision"),
+            name_1: teamTemplates.names[0],
+            name_2: teamTemplates.names[1],
+            name_3: teamTemplates.names[2],
+            name_4: teamTemplates.names[3],
+            role_1: teamTemplates.roles[0],
+            role_2: teamTemplates.roles[1],
+            role_3: teamTemplates.roles[2],
+            role_4: teamTemplates.roles[3],
+            bio_1: teamTemplates.bios[0],
+            bio_2: teamTemplates.bios[1],
+            bio_3: teamTemplates.bios[2],
+            bio_4: teamTemplates.bios[3],
           },
         };
 
