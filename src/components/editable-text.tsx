@@ -14,7 +14,6 @@ interface EditableTextProps {
 
 export function EditableText({ value, onSave, tag = "span", className = "", placeholder = "" }: EditableTextProps) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,9 +29,9 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
 
   const save = () => {
     setEditing(false);
-    const v = draft.trim();
+    const v = (ref.current?.textContent || "").trim();
     if (v && v !== value) onSave(v);
-    else setDraft(value);
+    else if (ref.current) ref.current.textContent = value;
   };
 
   const handleKey = (e: KeyboardEvent) => {
@@ -41,7 +40,7 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
       ref.current?.blur();
     }
     if (e.key === "Escape") {
-      setDraft(value);
+      if (ref.current) ref.current.textContent = value;
       setEditing(false);
     }
   };
@@ -66,10 +65,9 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
       suppressContentEditableWarning
       className={`outline outline-2 outline-brand-primary rounded-soft px-0.5 -mx-0.5 min-w-[2rem] ${className}`}
       onBlur={save}
-      onInput={(e) => setDraft(e.currentTarget.textContent || "")}
       onKeyDown={handleKey}
     >
-      {draft}
+      {value}
     </div>
   );
 }

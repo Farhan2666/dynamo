@@ -4,6 +4,7 @@ import { generateCopy } from "./agent2-copywriter";
 import { generateLayout } from "./agent3-ui-engineer";
 import { callLLM } from "@/lib/llm/api-call";
 import { runResearchAgent, applyResearchToPrompt } from "./agent4-researcher";
+import { detectLanguage } from "@/lib/utils/language";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -14,6 +15,7 @@ async function llmAnalyzeContext(
   settings: UserSettings
 ): Promise<ContextProfile | null> {
   try {
+    const lang = detectLanguage(prompt);
     const system = `You are a market context analyzer. Analyze the business description and output a JSON object with:
 - niche (string): business category
 - industryTags (array of strings): relevant keywords
@@ -24,6 +26,7 @@ async function llmAnalyzeContext(
 - layoutPriority (array of strings): preferred section order
 - audiencePersona (string): target audience description
 - moodProfile (string): one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced
+- language (string): "${lang}" — the detected language of the user's prompt
 
 Return ONLY valid JSON, no explanations.`;
 
@@ -47,8 +50,14 @@ async function llmGenerateCopy(
   settings: UserSettings
 ): Promise<CopyElement[] | null> {
   try {
+    const lang = context.language || "en";
+    const langNote = lang === "id"
+      ? "BAHASA: Semua teks harus dalam BAHASA INDONESIA. Gunakan kata-kata Indonesia yang alami, bukan terjemahan kaku."
+      : "LANGUAGE: All text must be in ENGLISH. Use natural English phrasing.";
     const system = `You are a conversion copywriter. Generate marketing copy for a landing page targeting ${context.audiencePersona} in the ${context.niche} industry.
 Mood: ${context.moodProfile}.
+
+${langNote}
 
 Output a JSON array of objects with properties: type (string: headline|subheader|cta|benefit|seo), content (string), variants (array of strings).
 Be creative and persuasive. Return ONLY valid JSON.`;
@@ -58,7 +67,7 @@ Be creative and persuasive. Return ONLY valid JSON.`;
       apiKey: settings.apiKey,
       model: settings.defaultModel,
       systemPrompt: system,
-      userPrompt: `Generate copy for ${context.niche} business targeting ${context.audiencePersona}. Tags: ${context.industryTags.join(", ")}`,
+      userPrompt: `Generate copy for ${context.niche} business targeting ${context.audiencePersona}. Tags: ${context.industryTags.join(", ")}. Language: ${lang}`,
       responseFormat: "json",
     });
 
@@ -75,8 +84,13 @@ async function llmGenerateLayout(
   researchContext?: string
 ): Promise<LayoutSchema | null> {
   try {
+    const lang = context.language || "en";
+    const langNote = lang === "id"
+      ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
+      : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
     const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
     const system = `You are a world-class UI engineer. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
+${langNote}
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
 Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
 
@@ -111,7 +125,7 @@ Make content feel BRAND-SPECIFIC, not generic. Use specific metrics, concrete de
 Instead write like a real human marketer: specific, opinionated, with a clear point of view.`;
 
     const researchBlock = researchContext ? `\n\nRESEARCH INSIGHTS:\n${researchContext}` : "";
-    const userMsg = `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}.${researchBlock}\n\nGenerate ALL section content fields — do not leave anything empty. Make every section feel like it was written by a human copywriter, not an AI.`;
+    const userMsg = `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}.${researchBlock}\n\nGenerate ALL section content fields — do not leave anything empty. Make every section feel like it was written by a human copywriter, not an AI.\n\nIMPORTANT: All text content must be in language: ${lang}.${lang === "id" ? " Gunakan BAHASA INDONESIA untuk semua teks." : ""}`;
 
     const result = await callLLM({
       provider: settings.llmProvider,

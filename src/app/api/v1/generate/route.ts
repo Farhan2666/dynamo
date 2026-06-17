@@ -16,8 +16,13 @@ export async function POST(req: NextRequest) {
 
     if (settings?.apiKey && copy) {
       try {
+        const lang = context.language || "en";
+        const langNote = lang === "id"
+          ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
+          : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
         const copySummary = (copy as CopyElement[]).map((c: CopyElement) => `${c.type}: ${c.content}`).join("\n");
         const system = `You are a world-class UI engineer. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
+${langNote}
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
 Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
 
@@ -54,7 +59,7 @@ Return ONLY valid JSON.`;
           apiKey: settings.apiKey,
           model: settings.defaultModel,
           systemPrompt: system,
-          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.`,
+          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.\n\nIMPORTANT: All text content must be in language: ${lang}.${lang === "id" ? " Gunakan BAHASA INDONESIA untuk semua teks." : ""}`,
           responseFormat: "json",
         });
 
