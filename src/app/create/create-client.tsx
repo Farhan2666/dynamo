@@ -7,7 +7,6 @@ import { useGenerationStore, useSettingsStore, useUIStore } from "@/lib/store";
 import { Button, Card, Badge, ColorPicker, MutationHistory, ExportPanel, Onboarding, PageTransition, AnimatedSection } from "@/components/ui";
 import { runAgent1, runAgent2, runAgent3, runAgent5 } from "@/lib/agents/orchestrator";
 import { getScoreColor, getScoreLabel } from "@/lib/agents/agent5-reviewer";
-import { mergeCopyIntoSections } from "@/lib/utils/copy-to-sections";
 import { scoreHeadline, generateHeadlineVariants, countAllSectionWords, estimateReadingTime } from "@/lib/utils/page-analytics";
 import { ConfettiCelebration, ShareButtons } from "@/components/page-enhancements";
 import type { LayoutSchema } from "@/types";
@@ -112,17 +111,15 @@ export function CreatePageClient() {
 
       setAgentProgress("agent4", true);
       const { result: rawLayout, source: src3 } = await runAgent3(context, copy, settings, vibeOverride);
-      const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
-      const layout = { ...rawLayout, sections: mergedSections };
-      setLayoutSchema(layout);
-      addMutation(layout);
+      setLayoutSchema(rawLayout);
+      addMutation(rawLayout);
       setAgentProgress("agent3", true);
       if (src3 === "fallback") {
         addToast("Agent 3 (UI Engineer) using local fallback — AI not connected", "warning");
       }
 
       // Agent 5: Self-Review
-      const report = runAgent5(layout, copy, context);
+      const report = runAgent5(rawLayout, copy, context);
       setReviewReport(report);
       setAgentProgress("agent5", true);
 
@@ -130,7 +127,7 @@ export function CreatePageClient() {
       addPromptHistory(prompt, context.niche);
 
       // Score headline variants
-      const hero = layout.sections.find((s) => s.type === "hero");
+      const hero = rawLayout.sections.find((s) => s.type === "hero");
       if (hero?.content?.headline) {
         const variants = generateHeadlineVariants(hero.content.headline);
         const scored = variants.map((v) => scoreHeadline(v));

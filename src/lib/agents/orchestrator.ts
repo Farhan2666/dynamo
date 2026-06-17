@@ -114,7 +114,7 @@ Brand assets:
 - Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}
 - Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}
 
-Output JSON for layout STRUCTURE ONLY (no copy/content fields). Follow this EXACT format:
+Output JSON with layout AND content. Follow this EXACT format:
 
 {
   "layout": "centered|asymmetric|split|full-width|grid (pick best for ${context.niche})",
@@ -123,7 +123,12 @@ Output JSON for layout STRUCTURE ONLY (no copy/content fields). Follow this EXAC
       "type": "hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team",
       "order": 1,
       "twClasses": ["tailwind classes like py-20 md:py-32"],
-      "spacing": "compact|comfortable|spacious|breathing"
+      "spacing": "compact|comfortable|spacious|breathing",
+      "content": {
+        "headline": "specific headline for this section",
+        "subheadline": "supporting description",
+        ...section-specific fields
+      }
     }
   ],
   "animations": {
@@ -136,12 +141,20 @@ Output JSON for layout STRUCTURE ONLY (no copy/content fields). Follow this EXAC
 
 RULES:
 - Pick 4-8 sections that tell the best story for "${context.niche}" — choose section TYPES and ORDER that match this specific industry
-- DO NOT include any content fields (no headline, subheadline, cta, etc.) — structure only
-- layout: choose the best style for ${context.niche} (not always the same one)
+- CRITICAL: Generate ORIGINAL, niche-specific content for each section. Do NOT use generic phrases like "transform your business" or "take your productivity to the next level"
+- For hero: include headline, subheadline, cta
+- For features: include title, subtitle, and 3-6 features each with title+desc
+- For testimonials: include title, subtitle, and 2-3 quotes with name+role
+- For pricing: include 3 plans with name, price, features
+- For cta: include headline, subheadline, button text
+- For faq: include 3-5 questions with answers
+- For stats: include 3-4 statistics with value+label
+- Use vocabulary specific to ${context.niche} industry
+- layout: choose the best style for ${context.niche}
 - twClasses: vary Tailwind padding based on section importance
 - spacing: vary per section
 
-ONLY valid JSON. No markdown. No content fields.`;
+ONLY valid JSON. No markdown.`;
 
     const researchBlock = researchContext ? `\n\nRelevant research about ${context.niche}:\n${researchContext}` : "";
     const userMsg = `Design a landing page structure for ${context.niche} (${context.moodProfile}) targeting ${context.audiencePersona}.${researchBlock}`;
@@ -161,7 +174,7 @@ ONLY valid JSON. No markdown. No content fields.`;
       id: `${s.type}-${s.order}-${Math.random().toString(36).slice(2, 8)}`,
       type: s.type,
       order: s.order,
-      content: {},
+      content: s.content || {},
       twClasses: s.twClasses || [`py-${12 + s.order * 4} md:py-${16 + s.order * 4}`],
       spacing: s.spacing || ("comfortable" as const),
     }));
