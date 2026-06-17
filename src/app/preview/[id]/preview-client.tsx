@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useGenerationStore, useUIStore } from "@/lib/store";
 import { Button } from "@/components/ui";
 import type { Section, MutationOptions } from "@/types";
@@ -278,6 +278,42 @@ function SectionPreview({
   const { updateImage, updateContent, setVariant, addSection, removeSection } = useSectionEdit();
   const { reorderSections } = useGenerationStore();
   const { addToast } = useUIStore();
+  const [dragOver, setDragOver] = useState(false);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", String(sectionIndex));
+    e.dataTransfer.effectAllowed = "move";
+    if (dragRef.current) {
+      dragRef.current.style.opacity = "0.4";
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (dragRef.current) {
+      dragRef.current.style.opacity = "1";
+    }
+    setDragOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+    if (fromIndex !== sectionIndex) {
+      reorderSections(fromIndex, sectionIndex);
+    }
+  };
 
   const variantCount = SECTION_VARIANTS[section.type] || 1;
   const raw = Number(section.content._variant);
@@ -313,7 +349,24 @@ function SectionPreview({
   const bgClass = bgOptions ? bgOptions[variant % bgOptions.length] : "bg-surface";
 
   return (
-    <div data-section-id={section.id} className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${bgClass} dynamo-animate dynamo-hidden`} style={{ transitionDelay: `${sectionIndex * 60}ms` }}>
+    <div
+      ref={dragRef}
+      data-section-id={section.id}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${bgClass} dynamo-animate dynamo-hidden ${dragOver ? "ring-2 ring-brand-primary ring-offset-2" : ""}`}
+      style={{ transitionDelay: `${sectionIndex * 60}ms` }}
+    >
+      <div className="absolute left-1 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+        <div className="w-5 h-10 flex flex-col items-center justify-center gap-1 rounded-soft bg-white/90 border border-surface-tertiary shadow-soft">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-text-muted"><circle cx="4" cy="2" r="1"/><circle cx="4" cy="6" r="1"/></svg>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-text-muted"><circle cx="4" cy="2" r="1"/><circle cx="4" cy="6" r="1"/></svg>
+        </div>
+      </div>
       {section.type === "hero" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-30" />}
       {section.type === "cta" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-20" />}
       <SectionToolbar

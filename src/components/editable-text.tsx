@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { FormatToolbar } from "./format-toolbar";
 
 type Tag = "h1" | "h2" | "h3" | "h4" | "p" | "span" | "div";
 
@@ -29,9 +30,9 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
 
   const save = () => {
     setEditing(false);
-    const v = (ref.current?.textContent || "").trim();
+    const v = (ref.current?.innerHTML || "").trim();
     if (v && v !== value) onSave(v);
-    else if (ref.current) ref.current.textContent = value;
+    else if (ref.current) ref.current.innerHTML = value;
   };
 
   const handleKey = (e: KeyboardEvent) => {
@@ -40,7 +41,7 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
       ref.current?.blur();
     }
     if (e.key === "Escape") {
-      if (ref.current) ref.current.textContent = value;
+      if (ref.current) ref.current.innerHTML = value;
       setEditing(false);
     }
   };
@@ -52,22 +53,24 @@ export function EditableText({ value, onSave, tag = "span", className = "", plac
         className={`cursor-pointer hover:outline-dashed hover:outline-1 hover:outline-brand-primary/40 rounded-soft px-0.5 transition-all ${className}`}
         onClick={() => setEditing(true)}
         title="Click to edit"
-      >
-        {value || placeholder}
-      </Tag>
+        dangerouslySetInnerHTML={{ __html: value || placeholder }}
+      />
     );
   }
 
   return (
-    <div
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      className={`outline outline-2 outline-brand-primary rounded-soft px-0.5 -mx-0.5 min-w-[2rem] ${className}`}
-      onBlur={save}
-      onKeyDown={handleKey}
-    >
-      {value}
+    <div className="relative">
+      <FormatToolbar containerRef={ref as React.RefObject<HTMLDivElement | null>} onClose={() => { save(); }} />
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        className={`outline outline-2 outline-brand-primary rounded-soft px-0.5 -mx-0.5 min-w-[2rem] [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-text-muted [&:empty:before]:pointer-events-none [&:empty:before]:cursor-text ${className}`}
+        data-placeholder={placeholder}
+        onBlur={save}
+        onKeyDown={handleKey}
+        dangerouslySetInnerHTML={{ __html: value }}
+      />
     </div>
   );
 }
