@@ -19,7 +19,6 @@ const MUTATION_MODES = [
 ];
 
 function SectionPreview({ section, index }: { section: Section; index: number }) {
-  const [hovered, setHovered] = useState(false);
   const styleVariant = (section.spacing === "compact" ? 0 : section.spacing === "breathing" ? 2 : 1);
 
   const bgVariants: Record<string, string[]> = {
@@ -47,8 +46,6 @@ function SectionPreview({ section, index }: { section: Section; index: number })
   return (
     <div
       className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${getBg()}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {section.type === "hero" && (
         <div className="noise-bg absolute inset-0 pointer-events-none opacity-30" />
