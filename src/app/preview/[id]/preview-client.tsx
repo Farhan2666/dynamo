@@ -99,7 +99,7 @@ function useSectionEdit() {
     const idx = layoutSchema.sections.findIndex((s) => s.id === afterId);
     const newSection: Section = {
       id: `section-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      type: type as any,
+      type: type as Section["type"],
       order: idx + 1,
       content: {},
       twClasses: [],
@@ -134,17 +134,13 @@ function StarRating({ size = 14 }: { size?: number }) {
 }
 
 function SectionToolbar({
-  section,
   onCycleVariant,
   onAddSection,
   onRemoveSection,
-  variantCount,
 }: {
-  section: Section;
   onCycleVariant: () => void;
   onAddSection: (type: string) => void;
   onRemoveSection: () => void;
-  variantCount: number;
 }) {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -238,15 +234,10 @@ const SECTION_BG: Record<string, string[]> = {
 
 function SectionPreview({
   section,
-  index,
-  total,
 }: {
   section: Section;
-  index: number;
-  total: number;
 }) {
   const { updateImage, updateContent, setVariant, addSection, removeSection } = useSectionEdit();
-  const { setLayoutSchema, layoutSchema } = useGenerationStore();
 
   const variantCount = SECTION_VARIANTS[section.type] || 1;
   const raw = Number(section.content._variant);
@@ -273,11 +264,9 @@ function SectionPreview({
       {section.type === "hero" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-30" />}
       {section.type === "cta" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-20" />}
       <SectionToolbar
-        section={section}
         onCycleVariant={cycleVariant}
         onAddSection={handleAddSection}
         onRemoveSection={handleRemoveSection}
-        variantCount={variantCount}
       />
       <div className="relative max-w-6xl mx-auto px-6">
         <SectionRenderer
@@ -1242,7 +1231,7 @@ export function PreviewPageClient() {
             style={{ maxWidth: currentDevice.width }}
           >
             {layoutSchema.sections.map((section, idx) => (
-              <SectionPreview key={section.id} section={section} index={idx} total={layoutSchema.sections.length} />
+              <SectionPreview key={section.id} section={section} />
             ))}
           </div>
         </div>

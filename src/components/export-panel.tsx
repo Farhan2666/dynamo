@@ -130,7 +130,7 @@ function galleryHTML(s: Section): string {
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 0.75rem;">${h.title}</h2>
     <p style="text-align:center;color:#555570;margin:0 0 2.5rem;">${h.subtitle}</p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
-      ${[1, 2, 3, 4, 5, 6].map((i) => `<div style="aspect-ratio:4/3;border-radius:0.5rem;background:linear-gradient(135deg,#E5E5F0,#F0F0FF);"></div>`).join("")}
+      ${[1, 2, 3, 4, 5, 6].map(() => `<div style="aspect-ratio:4/3;border-radius:0.5rem;background:linear-gradient(135deg,#E5E5F0,#F0F0FF);"></div>`).join("")}
     </div>
   </div>
 </section>`;
