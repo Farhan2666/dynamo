@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateLayout } from "@/lib/agents/agent3-ui-engineer";
 import { callLLMService } from "@/lib/llm/direct-call";
+import { extractJsonFromResponse } from "@/lib/utils/json";
 import type { ContextProfile, LayoutSchema, CopyElement } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -70,7 +71,7 @@ Return ONLY valid JSON.`;
           "json",
         );
 
-        const layout = JSON.parse(result.content) as LayoutSchema;
+        const layout = JSON.parse(extractJsonFromResponse(result.content)) as LayoutSchema;
         return NextResponse.json({
           layout,
           llm: true,
