@@ -43,22 +43,22 @@ const MODEL_LISTS: Record<LLMProvider, string[]> = {
   ],
   openrouter: [
     "auto",
+    "deepseek/deepseek-chat",
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
     "anthropic/claude-3.5-sonnet",
     "anthropic/claude-3-haiku",
     "meta-llama/llama-3-70b-instruct",
-    "meta-llama/llama-3.1-405b-instruct:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
+    "meta-llama/llama-3.1-405b-instruct",
+    "meta-llama/llama-3.1-8b-instruct",
     "mistralai/mixtral-8x22b-instruct",
-    "mistralai/mistral-nemo:free",
-    "google/gemini-2.0-flash-exp:free",
-    "deepseek/deepseek-chat:free",
-    "deepseek/deepseek-r1:free",
+    "mistralai/mistral-nemo",
+    "google/gemini-2.0-flash-exp",
+    "deepseek/deepseek-r1",
     "cohere/command-r-plus",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "microsoft/phi-3-medium-128k-instruct:free",
-    "qwen/qwen-2.5-72b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b",
+    "microsoft/phi-3-medium-128k-instruct",
+    "qwen/qwen-2.5-72b-instruct",
   ],
 };
 
@@ -70,7 +70,7 @@ export const DEFAULT_MODEL: Record<LLMProvider, string> = {
   cohere: "command-r-plus",
   together: "mixtral-8x22b-instruct",
   groq: "mixtral-8x7b-32768",
-  openrouter: "deepseek/deepseek-chat:free",
+  openrouter: "deepseek/deepseek-chat",
 };
 
 export function getModels(provider: LLMProvider): string[] {
