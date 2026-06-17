@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeContext } from "@/lib/agents/agent1-context";
-import { callLLM } from "@/lib/llm/api-call";
+import { callLLMService } from "@/lib/llm/direct-call";
 import type { ContextProfile } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -29,14 +29,14 @@ export async function POST(req: NextRequest) {
 
 Return ONLY valid JSON, no explanations.`;
 
-        const result = await callLLM({
-          provider: settings.llmProvider,
-          apiKey: settings.apiKey,
-          model: settings.defaultModel,
-          systemPrompt: system,
-          userPrompt: `Analyze this business: ${prompt}`,
-          responseFormat: "json",
-        });
+        const result = await callLLMService(
+          settings.llmProvider,
+          settings.apiKey,
+          system,
+          `Analyze this business: ${prompt}`,
+          settings.defaultModel,
+          "json",
+        );
 
         const context = JSON.parse(result.content) as ContextProfile;
         return NextResponse.json({
