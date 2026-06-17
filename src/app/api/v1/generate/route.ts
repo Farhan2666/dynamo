@@ -18,8 +18,10 @@ export async function POST(req: NextRequest) {
       try {
         const lang = context.language || "en";
         const langNote = lang === "id"
-          ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
-          : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
+          ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) WAJIB dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris sama sekali. Gunakan bahasa Indonesia yang alami dan menarik."
+          : lang === "en"
+          ? "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) MUST be in ENGLISH."
+          : `LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) MUST be in "${lang}". Use natural phrasing.`;
         const copySummary = (copy as CopyElement[]).map((c: CopyElement) => `${c.type}: ${c.content}`).join("\n");
         const system = `You are a world-class UI engineer. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
 ${langNote}
@@ -54,12 +56,17 @@ Avoid: "cutting-edge", "next-gen", "revolutionary", "game-changer", "state-of-th
 Use specific metrics, concrete details, and original phrasing.
 Return ONLY valid JSON.`;
 
+        const langInstruction = lang === "id"
+          ? "\n\nWAJIB: Semua teks di landing page HARUS dalam BAHASA INDONESIA — headline, subheadline, judul section, deskripsi, CTA, FAQ, testimonial, semua. Jangan ada satu kata pun bahasa Inggris."
+          : lang === "en"
+          ? "\n\nREQUIRED: All text on the landing page MUST be in ENGLISH."
+          : `\n\nREQUIRED: All text on the landing page MUST be in "${lang}".`;
         const result = await callLLM({
           provider: settings.llmProvider,
           apiKey: settings.apiKey,
           model: settings.defaultModel,
           systemPrompt: system,
-          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.\n\nIMPORTANT: All text content must be in language: ${lang}.${lang === "id" ? " Gunakan BAHASA INDONESIA untuk semua teks." : ""}`,
+          userPrompt: `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. Use these copy elements as inspiration:\n${copySummary}. Generate ALL section content fields do not leave anything empty. Write like a human marketer, not an AI.${langInstruction}`,
           responseFormat: "json",
         });
 

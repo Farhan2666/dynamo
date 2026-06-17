@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationStore, useSettingsStore, useUIStore } from "@/lib/store";
 import { Button, Card, Badge, ColorPicker, MutationHistory, ExportPanel, Onboarding, PageTransition, AnimatedSection } from "@/components/ui";
-import { runAgent1, runAgent2, runAgent3 } from "@/lib/agents/orchestrator";
+import { runAgent1, runAgent2, runAgent3, runAgent5 } from "@/lib/agents/orchestrator";
+import { getScoreColor, getScoreLabel } from "@/lib/agents/agent5-reviewer";
 import { mergeCopyIntoSections } from "@/lib/utils/copy-to-sections";
+import { scoreHeadline, generateHeadlineVariants, countAllSectionWords, estimateReadingTime } from "@/lib/utils/page-analytics";
+import { ConfettiCelebration, ShareButtons } from "@/components/page-enhancements";
 import type { LayoutSchema } from "@/types";
 
 const EXAMPLES = [
@@ -33,11 +36,25 @@ export function CreatePageClient() {
     agentProgress,
     addMutation,
     setAgentProgress,
+    setReviewReport,
+    reviewReport,
+    setVibeOverride,
+    setLayoutDensity,
+    vibeOverride,
+    layoutDensity,
+    addPromptHistory,
+    promptHistory,
+    headlineVariants,
+    setHeadlineVariants,
+    showHeadlineTester,
+    setShowHeadlineTester,
   } = useGenerationStore();
   const { settings } = useSettingsStore();
   const { addToast, showOnboarding, setShowOnboarding, toggleMutationPanel, mutationPanelOpen } = useUIStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<"colors" | "mutations" | "export">("colors");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -46,6 +63,20 @@ export function CreatePageClient() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
     }
   }, [prompt]);
+
+  // Keyboard shortcuts
+  const generateRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "g" || e.key === "G") { e.preventDefault(); generateRef.current(); }
+        if (e.key === "e" || e.key === "E") { e.preventDefault(); setActiveTab("export"); }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -62,6 +93,8 @@ export function CreatePageClient() {
       setAgentProgress("agent2", false);
       setAgentProgress("agent3", false);
       setAgentProgress("agent4", false);
+      setAgentProgress("agent5", false);
+      setReviewReport(null);
 
       const context = await runAgent1(prompt, settings);
       setContextProfile(context);
@@ -72,20 +105,42 @@ export function CreatePageClient() {
       setAgentProgress("agent2", true);
 
       setAgentProgress("agent4", true);
-      const rawLayout = await runAgent3(context, copy, settings);
+      const rawLayout = await runAgent3(context, copy, settings, vibeOverride);
       const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
       const layout = { ...rawLayout, sections: mergedSections };
       setLayoutSchema(layout);
       addMutation(layout);
       setAgentProgress("agent3", true);
 
-      addToast("Page generated successfully!", "success");
+      // Agent 5: Self-Review
+      const report = runAgent5(layout, copy, context);
+      setReviewReport(report);
+      setAgentProgress("agent5", true);
+
+      // Save prompt history
+      addPromptHistory(prompt, context.niche);
+
+      // Score headline variants
+      const hero = layout.sections.find((s) => s.type === "hero");
+      if (hero?.content?.headline) {
+        const variants = generateHeadlineVariants(hero.content.headline);
+        const scored = variants.map((v) => scoreHeadline(v));
+        setHeadlineVariants(scored);
+      }
+
+      // Confetti!
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3500);
+
+      addToast(`Page generated! Quality score: ${report.overallScore}/100`, "success");
     } catch {
       addToast("Generation failed. Try a simpler prompt.", "error");
     } finally {
       setIsGenerating(false);
     }
   };
+
+  generateRef.current = handleGenerate;
 
   const handleColorChange = (colors: { primary: string; secondary: string; accent: string }) => {
     if (contextProfile) {
@@ -104,6 +159,7 @@ export function CreatePageClient() {
 
   return (
     <PageTransition>
+      <ConfettiCelebration active={showConfetti} />
       {showOnboarding && !useUIStore.getState().onboardingComplete && (
         <Onboarding onComplete={() => useUIStore.getState().completeOnboarding()} />
       )}
@@ -136,12 +192,20 @@ export function CreatePageClient() {
                     <span className="text-caption text-text-muted">
                       {prompt.length}/300 characters
                     </span>
-                    <button
-                      onClick={() => setShowAdvanced(!showAdvanced)}
-                      className="text-caption text-brand-primary hover:underline"
-                    >
-                      {showAdvanced ? "Hide" : "Show"} Advanced
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className="text-caption text-text-muted hover:text-brand-primary transition-colors"
+                      >
+                        History ({promptHistory.length})
+                      </button>
+                      <button
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        className="text-caption text-brand-primary hover:underline"
+                      >
+                        {showAdvanced ? "Hide" : "Show"} Advanced
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -156,26 +220,57 @@ export function CreatePageClient() {
                       <label className="block text-caption font-medium text-text-muted mb-1.5">
                         Vibe Override
                       </label>
-                      <select className="w-full px-3 py-2 text-body-sm bg-surface border border-surface-tertiary rounded-soft focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary">
+                      <select
+                        value={vibeOverride || ""}
+                        onChange={(e) => setVibeOverride(e.target.value || null)}
+                        className="w-full px-3 py-2 text-body-sm bg-surface border border-surface-tertiary rounded-soft focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary"
+                      >
                         <option value="">Auto-detect</option>
                         <option value="professional">Professional</option>
                         <option value="playful">Playful</option>
-                        <option value="luxury">Luxury</option>
-                        <option value="minimal">Minimal</option>
-                        <option value="bold">Bold</option>
+                        <option value="trust">Trust & Authority</option>
+                        <option value="calm">Calm & Serene</option>
+                        <option value="growth">Growth & Energy</option>
+                        <option value="confident">Confident & Bold</option>
+                        <option value="warm">Warm & Inviting</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-caption font-medium text-text-muted mb-1.5">
                         Layout Density
                       </label>
-                      <select className="w-full px-3 py-2 text-body-sm bg-surface border border-surface-tertiary rounded-soft focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary">
+                      <select
+                        value={layoutDensity || "auto"}
+                        onChange={(e) => setLayoutDensity(e.target.value || null)}
+                        className="w-full px-3 py-2 text-body-sm bg-surface border border-surface-tertiary rounded-soft focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary"
+                      >
                         <option value="auto">Auto</option>
                         <option value="compact">Compact</option>
                         <option value="comfortable">Comfortable</option>
                         <option value="spacious">Spacious</option>
                       </select>
                     </div>
+                  </motion.div>
+                )}
+
+                {showHistory && promptHistory.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="p-3 rounded-soft bg-surface-secondary border border-surface-tertiary max-h-40 overflow-y-auto space-y-1"
+                  >
+                    <div className="text-caption font-medium text-text-muted mb-2">Prompt History</div>
+                    {promptHistory.map((h, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setPrompt(h.prompt); setShowHistory(false); }}
+                        className="w-full text-left px-2 py-1.5 rounded-soft text-caption text-text-secondary hover:bg-surface-tertiary transition-colors flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate flex-1">{h.prompt}</span>
+                        <Badge variant="primary">{h.niche}</Badge>
+                      </button>
+                    ))}
                   </motion.div>
                 )}
 
@@ -202,6 +297,11 @@ export function CreatePageClient() {
                 >
                   {isGenerating ? "Agents at work..." : "Generate Page"}
                 </Button>
+                <div className="flex items-center justify-center gap-2 text-[10px] text-text-muted">
+                  <kbd className="px-1.5 py-0.5 rounded bg-surface-tertiary font-mono">Ctrl+G</kbd> Generate
+                  <span className="mx-1">·</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-surface-tertiary font-mono">Ctrl+E</kbd> Export
+                </div>
               </div>
             </Card>
 
@@ -218,6 +318,7 @@ export function CreatePageClient() {
                         { id: "agent2" as const, label: "Copywriter", desc: "Crafting headlines, CTAs..." },
                         { id: "agent4" as const, label: "Research Analyst", desc: "Gathering industry data & trends..." },
                         { id: "agent3" as const, label: "UI Engineer", desc: "Assembling layout..." },
+                        { id: "agent5" as const, label: "Quality Reviewer", desc: reviewReport ? `Score: ${reviewReport.overallScore}/100` : "Scoring quality..." },
                       ].map((agent) => (
                         <div
                           key={agent.id}
@@ -289,6 +390,88 @@ export function CreatePageClient() {
                             />
                             <span className="text-caption font-mono">{contextProfile.secondaryColor}</span>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {reviewReport && !isGenerating && (
+                      <div className="mt-4 p-4 rounded-soft bg-surface-secondary border border-surface-tertiary">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-body-sm font-semibold">Quality Report</h4>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center font-heading font-bold text-sm"
+                              style={{ backgroundColor: getScoreColor(reviewReport.overallScore) + "20", color: getScoreColor(reviewReport.overallScore) }}
+                            >
+                              {reviewReport.overallScore}
+                            </div>
+                            <Badge variant="primary">{getScoreLabel(reviewReport.overallScore)}</Badge>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 mb-3">
+                          {[
+                            { label: "Conversion", value: reviewReport.conversionScore },
+                            { label: "Language", value: reviewReport.languageScore },
+                            { label: "Complete", value: reviewReport.completenessScore },
+                            { label: "A11y", value: reviewReport.accessibilityScore },
+                          ].map((m) => (
+                            <div key={m.label} className="text-center p-2 rounded-soft bg-surface">
+                              <div className="text-caption text-text-muted">{m.label}</div>
+                              <div className="font-heading font-bold text-base" style={{ color: getScoreColor(m.value) }}>{m.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {reviewReport.conversionMetrics.filter((m) => m.tips.length > 0).slice(0, 2).map((m) => (
+                          <div key={m.category} className="text-caption text-text-muted mb-1">
+                            <span className="font-medium">{m.category}:</span> {m.tips[0]}
+                          </div>
+                        ))}
+
+                        {/* Word Count & Reading Time */}
+                        {layoutSchema && (
+                          <div className="mt-3 pt-3 border-t border-surface-tertiary flex items-center gap-4 text-caption text-text-muted">
+                            <span>{countAllSectionWords(layoutSchema.sections)} words</span>
+                            <span>·</span>
+                            <span>~{estimateReadingTime(Object.values(layoutSchema.sections).map((s) => Object.values(s.content).join(" ")).join(" "))} min read</span>
+                            <span>·</span>
+                            <span>{layoutSchema.sections.length} sections</span>
+                          </div>
+                        )}
+
+                        {/* Headline A/B Tester */}
+                        {headlineVariants.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-surface-tertiary">
+                            <button
+                              onClick={() => setShowHeadlineTester(!showHeadlineTester)}
+                              className="text-caption font-medium text-brand-primary hover:underline mb-2"
+                            >
+                              {showHeadlineTester ? "Hide" : "Show"} Headline A/B Test ({headlineVariants.length} variants)
+                            </button>
+                            {showHeadlineTester && (
+                              <div className="space-y-2">
+                                {headlineVariants.sort((a, b) => b.score - a.score).map((v, i) => (
+                                  <div key={i} className={`p-2 rounded-soft border ${i === 0 ? "border-green-300 bg-green-50" : "border-surface-tertiary bg-surface"}`}>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-[10px] font-medium text-text-muted">{i === 0 ? "Best" : `Variant ${i + 1}`}</span>
+                                      <span className="text-[10px] font-bold" style={{ color: getScoreColor(v.score) }}>{v.score}/100</span>
+                                    </div>
+                                    <p className="text-body-sm font-medium text-text-primary">{v.text}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {v.reasons.map((r, ri) => (
+                                        <span key={ri} className="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-tertiary text-text-muted">{r}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Share buttons */}
+                        <div className="mt-3 pt-3 border-t border-surface-tertiary">
+                          <div className="text-caption text-text-muted mb-2">Share this page:</div>
+                          <ShareButtons title={`Landing page for ${contextProfile?.niche || "business"}`} />
                         </div>
                       </div>
                     )}

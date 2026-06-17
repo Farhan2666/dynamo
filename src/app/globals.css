@@ -229,3 +229,18 @@
     border-radius: 9999px;
   }
 }
+
+/* Scroll Animation Engine */
+.dynamo-animate {
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.dynamo-hidden {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.dynamo-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

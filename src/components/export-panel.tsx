@@ -10,6 +10,16 @@ interface ExportPanelProps {
   context: ContextProfile;
 }
 
+const SECTION_LABELS: Record<string, Record<string, string>> = {
+  en: { features: "Features", testimonials: "Testimonials", pricing: "Pricing", faq: "FAQ", stats: "By the Numbers", logos: "Trusted By" },
+  id: { features: "Fitur", testimonials: "Testimoni", pricing: "Harga", faq: "FAQ", stats: "Angka & Fakta", logos: "Dipercaya Oleh" },
+};
+
+function getSectionLabel(type: string, lang: string): string {
+  const labels = SECTION_LABELS[lang] || SECTION_LABELS.en;
+  return labels[type] || SECTION_LABELS.en[type] || type;
+}
+
 function heroHTML(s: Section, c: ContextProfile): string {
   const h = s.content;
   return `<section style="padding:6rem 1.5rem;background:linear-gradient(135deg,${c.primaryColor},${c.secondaryColor});color:white;text-align:center;">
@@ -22,11 +32,12 @@ function heroHTML(s: Section, c: ContextProfile): string {
 </section>`;
 }
 
-function featuresHTML(s: Section): string {
+function featuresHTML(s: Section, lang: string): string {
   const h = s.content;
+  const label = getSectionLabel("features", lang);
   return `<section style="padding:5rem 1.5rem;background:#FFFFFF;">
   <div style="max-width:1100px;margin:0 auto;">
-    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">Features</p>
+    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">${label}</p>
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 0.75rem;">${h.title}</h2>
     <p style="text-align:center;color:#555570;max-width:600px;margin:0 auto 3rem;">${h.subtitle}</p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;">
@@ -40,11 +51,12 @@ function featuresHTML(s: Section): string {
 </section>`;
 }
 
-function testimonialsHTML(s: Section): string {
+function testimonialsHTML(s: Section, lang: string): string {
   const h = s.content;
+  const label = getSectionLabel("testimonials", lang);
   return `<section style="padding:5rem 1.5rem;background:#F8F8FF;">
   <div style="max-width:900px;margin:0 auto;">
-    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">Testimonials</p>
+    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">${label}</p>
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 3rem;">${h.title}</h2>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2rem;">
       ${[1, 2].map((i) => `<div style="padding:2rem;border-radius:0.5rem;border:1px solid #E5E5F0;background:white;">
@@ -59,11 +71,12 @@ function testimonialsHTML(s: Section): string {
 </section>`;
 }
 
-function pricingHTML(s: Section): string {
+function pricingHTML(s: Section, lang: string): string {
   const h = s.content;
+  const label = getSectionLabel("pricing", lang);
   return `<section style="padding:5rem 1.5rem;background:#FFFFFF;">
   <div style="max-width:1000px;margin:0 auto;">
-    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">Pricing</p>
+    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">${label}</p>
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 3rem;">${h.title}</h2>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;">
       ${[1, 2, 3].map((i) => `<div style="padding:2rem;border-radius:0.75rem;border:${i === 2 ? "2px solid " + "#FF7E33" : "1px solid #E5E5F0"};text-align:center;${i === 2 ? "transform:scale(1.05);box-shadow:0 8px 32px rgba(255,126,51,0.15);" : ""}background:white;">
@@ -95,11 +108,12 @@ function ctaHTML(s: Section, c: ContextProfile): string {
 </section>`;
 }
 
-function faqHTML(s: Section): string {
+function faqHTML(s: Section, lang: string): string {
   const h = s.content;
+  const label = getSectionLabel("faq", lang);
   return `<section style="padding:5rem 1.5rem;background:#F8F8FF;">
   <div style="max-width:700px;margin:0 auto;">
-    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">FAQ</p>
+    <p style="text-align:center;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${"#FF7E33"};margin-bottom:0.5rem;">${label}</p>
     <h2 style="text-align:center;font-size:2.25rem;font-weight:700;margin:0 0 3rem;">${h.title}</h2>
     ${[1, 2, 3].map((i) => `<details style="border-bottom:1px solid #E5E5F0;padding:1rem 0;">
       <summary style="font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;">${h[`q_${i}`]}<span style="font-size:1.25rem;">+</span></summary>
@@ -218,13 +232,14 @@ function teamHTML(s: Section): string {
 }
 
 function sectionToHTML(s: Section, c: ContextProfile): string {
+  const lang = c.language || "en";
   switch (s.type) {
     case "hero": return heroHTML(s, c);
-    case "features": return featuresHTML(s);
-    case "testimonials": return testimonialsHTML(s);
-    case "pricing": return pricingHTML(s);
+    case "features": return featuresHTML(s, lang);
+    case "testimonials": return testimonialsHTML(s, lang);
+    case "pricing": return pricingHTML(s, lang);
     case "cta": return ctaHTML(s, c);
-    case "faq": return faqHTML(s);
+    case "faq": return faqHTML(s, lang);
     case "stats": return statsHTML(s);
     case "gallery": return galleryHTML(s);
     case "logos": return logosHTML(s);
@@ -236,24 +251,67 @@ function sectionToHTML(s: Section, c: ContextProfile): string {
   }
 }
 
-function generateFullHTML(data: ExportPanelProps): string {
+function generateSEOHead(context: ContextProfile, layout: LayoutSchema): string {
+  const lang = context.language || "en";
+  const hero = layout.sections.find((s) => s.type === "hero");
+  const title = hero?.content?.headline || `${context.niche} — Landing Page`;
+  const description = hero?.content?.subheadline || `Professional landing page for ${context.niche}`;
+  const faqSection = layout.sections.find((s) => s.type === "faq");
+
+  const ogTags = `
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${description}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="${lang === "id" ? "id_ID" : "en_US"}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="${description}">`;
+
+  let jsonLd = "";
+  if (faqSection) {
+    const faqItems = [];
+    for (let i = 1; i <= 3; i++) {
+      const q = faqSection.content[`q_${i}`];
+      const a = faqSection.content[`a_${i}`];
+      if (q && a) faqItems.push({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } });
+    }
+    if (faqItems.length > 0) {
+      jsonLd = `\n  <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqItems })}</script>`;
+    }
+  }
+
+  const orgLd = `\n  <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: context.niche, description: description })}</script>`;
+
+  return `  <meta name="description" content="${description}">
+  <meta name="keywords" content="${context.industryTags.join(", ")}">
+  <meta name="author" content="${context.niche}">${ogTags}${jsonLd}${orgLd}`;
+}
+
+function generateFullHTML(data: ExportPanelProps, darkMode: boolean = false): string {
   const { layout, context } = data;
+  const lang = context.language || "en";
+  const hero = layout.sections.find((s) => s.type === "hero");
+  const title = hero?.content?.headline || `${context.niche} — Landing Page`;
   const sectionsHTML = layout.sections.map((s) => sectionToHTML(s, context)).join("\n");
 
+  const seoHead = generateSEOHead(context, layout);
+
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${context.niche} — Dynamo Generated</title>
+  <title>${title} — Dynamo Generated</title>
+${seoHead}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', system-ui, sans-serif; color: #1A1A2E; background: #FFFFFF; line-height: 1.6; }
+    body { font-family: 'Inter', system-ui, sans-serif; color: ${darkMode ? "#E5E5F0" : "#1A1A2E"}; background: ${darkMode ? "#0F0F1A" : "#FFFFFF"}; line-height: 1.6; }
     h1, h2, h3, h4 { font-family: 'Sora', sans-serif; }
     a { transition: all 0.2s; }
     a:hover { opacity: 0.85; }
+    section { ${darkMode ? "filter: brightness(0.85) contrast(1.1);" : ""} }
     @media (max-width: 768px) {
       [style*="grid-template-columns:repeat(3"] { grid-template-columns: 1fr !important; }
       [style*="grid-template-columns:repeat(2"] { grid-template-columns: 1fr !important; }
@@ -303,12 +361,13 @@ function downloadFile(content: string, filename: string, mime: string) {
 export function ExportPanel({ layout, copy, context }: ExportPanelProps) {
   const [mode, setMode] = useState<"html" | "tailwind">("html");
   const [copied, setCopied] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const getContent = useCallback((): string => {
     return mode === "html"
-      ? generateFullHTML({ layout, copy, context })
+      ? generateFullHTML({ layout, copy, context }, darkMode)
       : generateTailwind({ layout, copy, context });
-  }, [layout, copy, context, mode]);
+  }, [layout, copy, context, mode, darkMode]);
 
   const handleCopy = async () => {
     try {
@@ -348,6 +407,18 @@ export function ExportPanel({ layout, copy, context }: ExportPanelProps) {
           </button>
         ))}
       </div>
+
+      {mode === "html" && (
+        <div className="flex items-center justify-between px-1">
+          <label className="text-[10px] text-text-muted font-medium">Dark Mode Export</label>
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`relative w-8 h-4 rounded-full transition-colors ${darkMode ? "bg-brand-primary" : "bg-surface-tertiary"}`}
+          >
+            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${darkMode ? "translate-x-4" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+      )}
 
       <div className="relative">
         <pre className="p-3 rounded-soft bg-brand-dark text-[10px] text-white/80 font-mono overflow-x-auto max-h-40 scrollbar-thin">

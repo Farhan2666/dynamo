@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useGenerationStore, useUIStore } from "@/lib/store";
 import { Button } from "@/components/ui";
 import type { Section, MutationOptions } from "@/types";
@@ -137,15 +137,49 @@ function SectionToolbar({
   onCycleVariant,
   onAddSection,
   onRemoveSection,
+  onMoveUp,
+  onMoveDown,
+  onCopyHTML,
 }: {
   onCycleVariant: () => void;
   onAddSection: (type: string) => void;
   onRemoveSection: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onCopyHTML?: () => void;
 }) {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
   return (
     <div className="absolute top-2 right-2 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      {onMoveUp && (
+        <button
+          onClick={onMoveUp}
+          className="px-1.5 py-1 rounded-soft bg-white/90 border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-white hover:text-brand-primary transition-all shadow-soft"
+          title="Move section up"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 12V4M4 8l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+      )}
+      {onMoveDown && (
+        <button
+          onClick={onMoveDown}
+          className="px-1.5 py-1 rounded-soft bg-white/90 border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-white hover:text-brand-primary transition-all shadow-soft"
+          title="Move section down"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 4v8M4 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+      )}
+      {onCopyHTML && (
+        <button
+          onClick={onCopyHTML}
+          className="px-2 py-1 rounded-soft bg-white/90 border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-white hover:text-blue-600 transition-all shadow-soft"
+          title="Copy section HTML"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline mr-0.5"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+          HTML
+        </button>
+      )}
       <button
         onClick={onCycleVariant}
         className="px-2 py-1 rounded-soft bg-white/90 border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-white hover:text-brand-primary transition-all shadow-soft"
@@ -234,10 +268,16 @@ const SECTION_BG: Record<string, string[]> = {
 
 function SectionPreview({
   section,
+  sectionIndex,
+  totalSections,
 }: {
   section: Section;
+  sectionIndex: number;
+  totalSections: number;
 }) {
   const { updateImage, updateContent, setVariant, addSection, removeSection } = useSectionEdit();
+  const { reorderSections } = useGenerationStore();
+  const { addToast } = useUIStore();
 
   const variantCount = SECTION_VARIANTS[section.type] || 1;
   const raw = Number(section.content._variant);
@@ -256,17 +296,33 @@ function SectionPreview({
     removeSection(section.id);
   };
 
+  const handleMoveUp = sectionIndex > 0 ? () => reorderSections(sectionIndex, sectionIndex - 1) : undefined;
+  const handleMoveDown = sectionIndex < totalSections - 1 ? () => reorderSections(sectionIndex, sectionIndex + 1) : undefined;
+
+  const handleCopyHTML = () => {
+    const el = document.querySelector(`[data-section-id="${section.id}"]`);
+    if (el) {
+      const html = el.innerHTML;
+      navigator.clipboard.writeText(html).then(() => addToast("Section HTML copied!", "success"));
+    } else {
+      addToast("Could not find section element", "error");
+    }
+  };
+
   const bgOptions = SECTION_BG[section.type];
   const bgClass = bgOptions ? bgOptions[variant % bgOptions.length] : "bg-surface";
 
   return (
-    <div className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${bgClass}`}>
+    <div data-section-id={section.id} className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${bgClass} dynamo-animate dynamo-hidden`} style={{ transitionDelay: `${sectionIndex * 60}ms` }}>
       {section.type === "hero" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-30" />}
       {section.type === "cta" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-20" />}
       <SectionToolbar
         onCycleVariant={cycleVariant}
         onAddSection={handleAddSection}
         onRemoveSection={handleRemoveSection}
+        onMoveUp={handleMoveUp}
+        onMoveDown={handleMoveDown}
+        onCopyHTML={handleCopyHTML}
       />
       <div className="relative max-w-6xl mx-auto px-6">
         <SectionRenderer
@@ -1163,6 +1219,49 @@ export function PreviewPageClient() {
   const [showMutationPanel, setShowMutationPanel] = useState(false);
   const [exportMode, setExportMode] = useState(false);
 
+  // Google Fonts dynamic loading
+  useEffect(() => {
+    if (!contextProfile) return;
+    const fonts = [contextProfile.primaryFont, contextProfile.secondaryFont].filter(Boolean);
+    const uniqueFonts = fonts.filter((v, i, a) => a.indexOf(v) === i);
+    const family = uniqueFonts.map((f) => `${f.replace(/\s+/g, "+")}:wght@400;600;700;800`).join("&family=");
+    const href = `https://fonts.googleapis.com/css2?family=${family}&display=swap`;
+
+    let link = document.getElementById("dynamo-google-fonts") as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.id = "dynamo-google-fonts";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = href;
+
+    return () => {
+      const el = document.getElementById("dynamo-google-fonts");
+      if (el) el.remove();
+    };
+  }, [contextProfile]);
+
+  // Scroll animation with IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("dynamo-visible");
+            entry.target.classList.remove("dynamo-hidden");
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+
+    const sections = document.querySelectorAll(".dynamo-animate");
+    sections.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [layoutSchema]);
+
   const currentDevice = DEVICE_SIZES.find((d) => d.id === device) || DEVICE_SIZES[2];
 
   const handleRegenerate = async (mode: string) => {
@@ -1230,8 +1329,8 @@ export function PreviewPageClient() {
             className="mx-auto bg-white shadow-strong min-h-full transition-all duration-[var(--transition-base)]"
             style={{ maxWidth: currentDevice.width }}
           >
-            {layoutSchema.sections.map((section) => (
-              <SectionPreview key={section.id} section={section} />
+            {layoutSchema.sections.map((section, index) => (
+              <SectionPreview key={section.id} section={section} sectionIndex={index} totalSections={layoutSchema.sections.length} />
             ))}
           </div>
         </div>

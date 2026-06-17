@@ -52,6 +52,7 @@ export function ImageUpload({ sectionId, existingUrl, onSave, className = "", as
     >
       {preview ? (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
             alt="Uploaded"
