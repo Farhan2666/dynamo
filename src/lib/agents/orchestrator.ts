@@ -142,14 +142,36 @@ Output JSON with layout AND content. Follow this EXACT format:
 RULES:
 - Pick 4-8 sections that tell the best story for "${context.niche}" — choose section TYPES and ORDER that match this specific industry
 - CRITICAL: Generate ORIGINAL, niche-specific content for each section. Do NOT use generic phrases like "transform your business" or "take your productivity to the next level"
-- For hero: include headline, subheadline, cta
-- For features: include title, subtitle, and 3-6 features each with title+desc
-- For testimonials: include title, subtitle, and 2-3 quotes with name+role
-- For pricing: include 3 plans with name, price, features
-- For cta: include headline, subheadline, button text
-- For faq: include 3-5 questions with answers
-- For stats: include 3-4 statistics with value+label
 - Use vocabulary specific to ${context.niche} industry
+
+EXACT content keys per section type (use these EXACT field names in the content object):
+
+hero content: { "headline": "...", "subheadline": "...", "cta": "...", "badge?": "optional badge" }
+
+features content: { "title": "...", "subtitle": "...", "feature_1_title": "...", "feature_1_desc": "...", "feature_2_title": "...", "feature_2_desc": "...", "feature_3_title": "...", "feature_3_desc": "..." } — provide 3-4 features with numbered keys
+
+testimonials content: { "title": "...", "subtitle": "...", "quote_1": "...", "name_1": "...", "role_1": "...", "quote_2": "...", "name_2": "...", "role_2": "..." } — provide 2-3 testimonials with numbered keys
+
+pricing content: { "title": "...", "subtitle": "...", "plan_1_name": "...", "plan_1_price": "$...", "plan_1_desc": "...", "plan_1_feat_1": "...", "plan_1_feat_2": "...", "plan_1_feat_3": "...", "plan_1_feat_4": "...", "plan_2_name": "...", "plan_2_price": "$...", "plan_2_feat_1": "...", "plan_2_feat_2": "...", "plan_3_name": "...", "plan_3_price": "$..." } — provide 3 plans with numbered keys
+
+cta content: { "headline": "...", "subheadline": "...", "button": "..." }
+
+faq content: { "title": "...", "subtitle": "...", "q_1": "...", "a_1": "...", "q_2": "...", "a_2": "...", "q_3": "...", "a_3": "..." } — provide 3-5 Q&A pairs
+
+stats content: { "stat_1_value": "...", "stat_1_label": "...", "stat_2_value": "...", "stat_2_label": "...", "stat_3_value": "...", "stat_3_label": "...", "stat_4_value": "...", "stat_4_label": "..." }
+
+gallery content: { "title": "...", "subtitle": "..." } (images will be added by user)
+
+logos content: { "title": "..." }
+
+contact content: { "title": "...", "subtitle": "...", "email": "...", "phone": "..." }
+
+team content: { "title": "...", "subtitle": "...", "member_1_name": "...", "member_1_role": "...", "member_2_name": "...", "member_2_role": "...", "member_3_name": "..." }
+
+comparison content: { "title": "...", "subtitle": "...", "col_1_name": "Our Product", "col_1_feat_1": "...", "col_1_feat_2": "...", "col_2_name": "Others", "col_2_feat_1": "...", "col_2_feat_2": "..." }
+
+timeline content: { "title": "...", "subtitle": "...", "step_1_title": "...", "step_1_desc": "...", "step_2_title": "...", "step_2_desc": "...", "step_3_title": "...", "step_3_desc": "...", "step_4_title": "..." }
+
 - layout: choose the best style for ${context.niche}
 - twClasses: vary Tailwind padding based on section importance
 - spacing: vary per section
