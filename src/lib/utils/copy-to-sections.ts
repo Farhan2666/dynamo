@@ -1,9 +1,5 @@
 import type { Section, CopyElement, ContextProfile } from "@/types";
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 function hashNiche(niche: string): number {
   let h = 0;
   for (let i = 0; i < niche.length; i++) {
