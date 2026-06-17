@@ -83,7 +83,9 @@ const initialGenState = {
   showHeadlineTester: false,
 };
 
-export const useGenerationStore = create<GenerationStore>((set) => ({
+export const useGenerationStore = create<GenerationStore>()(
+  persist(
+    (set) => ({
   ...initialGenState,
   setPrompt: (prompt) => set({ prompt }),
   setContextProfile: (profile) =>
@@ -139,7 +141,22 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
       return { layoutSchema: { ...state.layoutSchema, sections: reordered } };
     }),
   resetAll: () => set(initialGenState),
-}));
+}),
+{
+  name: "dynamo-generation",
+  partialize: (state) => ({
+    prompt: state.prompt,
+    contextProfile: state.contextProfile,
+    copyElements: state.copyElements,
+    layoutSchema: state.layoutSchema,
+    mutationHistory: state.mutationHistory,
+    vibeOverride: state.vibeOverride,
+    layoutDensity: state.layoutDensity,
+    promptHistory: state.promptHistory,
+    headlineVariants: state.headlineVariants,
+  }),
+}
+));
 
 interface SettingsStore {
   settings: UserSettings;

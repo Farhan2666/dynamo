@@ -7,6 +7,7 @@ import type { Section, MutationOptions } from "@/types";
 import { regenerateLayout } from "@/lib/layout-engine/mutation-engine";
 import { EditableText } from "@/components/editable-text";
 import { ImageUpload } from "@/components/image-upload";
+import { ContactForm } from "@/components/contact-form";
 import { ExportPanel } from "@/components/ui";
 
 const DEVICE_SIZES = [
@@ -1028,12 +1029,7 @@ function SectionRenderer({
             <EditableText value={content.title} onSave={s("title")} tag="h2" className="font-heading text-heading font-bold mb-3" placeholder="Get in Touch" />
             <EditableText value={content.subtitle} onSave={s("subtitle")} tag="p" className="text-body-lg text-text-secondary max-w-xl mx-auto" placeholder="We'd love to hear from you" />
           </div>
-          <div className="max-w-md mx-auto space-y-4">
-            <input placeholder="Your Name" className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 bg-surface" />
-            <input placeholder="Your Email" className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 bg-surface" />
-            <textarea placeholder="Message" rows={3} className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 bg-surface resize-none" />
-            <Button variant="primary" className="w-full">{content.cta || "Send Message"}</Button>
-          </div>
+          <ContactForm cta={content.cta || "Send Message"} />
         </div>
       );
     }
@@ -1064,12 +1060,7 @@ function SectionRenderer({
               </div>
             ))}
           </div>
-          <div className="space-y-4">
-            <input placeholder="Your Name" className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary bg-surface" />
-            <input placeholder="Your Email" className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary bg-surface" />
-            <textarea placeholder="Message" rows={3} className="w-full px-4 py-3 rounded-soft border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary bg-surface resize-none" />
-            <Button variant="primary" className="w-full">{content.cta || "Send Message"}</Button>
-          </div>
+          <ContactForm cta={content.cta || "Send Message"} />
         </div>
       </div>
     );
