@@ -112,8 +112,17 @@ export function CreatePageClient() {
 
       setAgentProgress("agent4", true);
       const { result: rawLayout, source: src3 } = await runAgent3(context, copy, settings, vibeOverride);
-      const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
-      const layout = { ...rawLayout, sections: mergedSections };
+
+      const aiFull = src1 === "ai" && src2 === "ai" && src3 === "ai";
+      let layout: LayoutSchema;
+
+      if (aiFull) {
+        layout = rawLayout;
+      } else {
+        const mergedSections = mergeCopyIntoSections(rawLayout.sections, copy, context);
+        layout = { ...rawLayout, sections: mergedSections };
+      }
+
       setLayoutSchema(layout);
       addMutation(layout);
       setAgentProgress("agent3", true);
@@ -137,7 +146,7 @@ export function CreatePageClient() {
         setHeadlineVariants(scored);
       }
 
-      const usingAi = src1 === "ai" && src2 === "ai" && src3 === "ai";
+      const usingAi = aiFull;
       if (usingAi) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3500);
@@ -160,6 +169,7 @@ export function CreatePageClient() {
         ...contextProfile,
         primaryColor: colors.primary,
         secondaryColor: colors.secondary,
+        accentColor: colors.accent,
       });
     }
   };
@@ -544,7 +554,7 @@ export function CreatePageClient() {
                           colors={{
                             primary: contextProfile.primaryColor,
                             secondary: contextProfile.secondaryColor,
-                            accent: "#FF7E33",
+                            accent: contextProfile.accentColor,
                           }}
                           onChange={handleColorChange}
                         />

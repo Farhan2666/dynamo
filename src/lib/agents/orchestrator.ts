@@ -24,6 +24,7 @@ async function llmAnalyzeContext(
   "industryTags": ["3-5 specific keywords about this business"],
   "primaryColor": "hex color based on brand psychology for this industry",
   "secondaryColor": "hex secondary color",
+  "accentColor": "hex accent color (often complementary to primary, for small highlights)",
   "primaryFont": "heading font (Inter, Sora, or Poppins)",
   "secondaryFont": "body font (Inter, Sora, or Poppins)",
   "layoutPriority": ["hero", "features", "testimonials", "cta"],

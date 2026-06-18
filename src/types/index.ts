@@ -23,6 +23,7 @@ export interface ContextProfile {
   industryTags: string[];
   primaryColor: string;
   secondaryColor: string;
+  accentColor: string;
   primaryFont: string;
   secondaryFont: string;
   layoutPriority: SectionType[];

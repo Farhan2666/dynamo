@@ -162,6 +162,7 @@ export function analyzeContext(prompt: string): ContextProfile {
     industryTags: tags.length > 0 ? tags : [bestNiche],
     primaryColor: colors.primary,
     secondaryColor: colors.secondary,
+    accentColor: colors.accent,
     primaryFont: fonts.primary,
     secondaryFont: fonts.secondary,
     layoutPriority,

@@ -272,15 +272,19 @@ function SectionPreview({
   section,
   sectionIndex,
   totalSections,
+  onSetBackground,
 }: {
   section: Section;
   sectionIndex: number;
   totalSections: number;
+  onSetBackground: (sectionId: string, url: string) => void;
 }) {
   const { updateImage, updateContent, setVariant, addSection, removeSection } = useSectionEdit();
   const { reorderSections } = useGenerationStore();
   const { addToast } = useUIStore();
   const [dragOver, setDragOver] = useState(false);
+  const [bgUrlInput, setBgUrlInput] = useState(false);
+  const [bgUrlValue, setBgUrlValue] = useState("");
   const dragRef = useRef<HTMLDivElement>(null);
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -349,6 +353,7 @@ function SectionPreview({
 
   const bgOptions = SECTION_BG[section.type];
   const bgClass = bgOptions ? bgOptions[variant % bgOptions.length] : "bg-surface";
+  const hasCustomBg = !!section.content.__background;
 
   return (
     <div
@@ -360,8 +365,11 @@ function SectionPreview({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${bgClass} dynamo-animate dynamo-hidden ${dragOver ? "ring-2 ring-brand-primary ring-offset-2" : ""}`}
-      style={{ transitionDelay: `${sectionIndex * 60}ms` }}
+      className={`relative group transition-all duration-[var(--transition-base)] ${section.twClasses.join(" ")} ${!hasCustomBg ? bgClass : ""} dynamo-animate dynamo-hidden ${dragOver ? "ring-2 ring-brand-primary ring-offset-2" : ""} ${hasCustomBg ? "bg-cover bg-center text-white" : ""}`}
+      style={{
+        ...(hasCustomBg ? { backgroundImage: `url(${section.content.__background})` } : {}),
+        transitionDelay: `${sectionIndex * 60}ms`,
+      } as React.CSSProperties}
     >
       <div className="absolute left-1 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
         <div className="w-5 h-10 flex flex-col items-center justify-center gap-1 rounded-soft bg-white/90 border border-surface-tertiary shadow-soft">
@@ -371,6 +379,7 @@ function SectionPreview({
       </div>
       {section.type === "hero" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-30" />}
       {section.type === "cta" && <div className="noise-bg absolute inset-0 pointer-events-none opacity-20" />}
+      {hasCustomBg && <div className="absolute inset-0 bg-black/50 pointer-events-none" />}
       <SectionToolbar
         onCycleVariant={cycleVariant}
         onAddSection={handleAddSection}
@@ -379,6 +388,53 @@ function SectionPreview({
         onMoveDown={handleMoveDown}
         onCopyHTML={handleCopyHTML}
       />
+      <div className="absolute top-10 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!bgUrlInput && (
+          <button
+            onClick={() => setBgUrlInput(true)}
+            className="w-7 h-7 flex items-center justify-center rounded-soft bg-white/90 border border-surface-tertiary text-caption text-text-muted hover:text-brand-primary hover:bg-white transition-all shadow-soft"
+            title="Set section background image"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
+              <circle cx="5" cy="5" r="1.5" />
+              <path d="M15 10l-3-3-4 4-2-2-3 3" />
+            </svg>
+          </button>
+        )}
+        {bgUrlInput && (
+          <div className="flex gap-1 bg-white rounded-soft border border-surface-tertiary p-1 shadow-soft">
+            <input
+              type="text"
+              value={bgUrlValue}
+              onChange={(e) => setBgUrlValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && bgUrlValue.trim()) {
+                  onSetBackground(section.id, bgUrlValue.trim());
+                  setBgUrlInput(false);
+                  setBgUrlValue("");
+                }
+                if (e.key === "Escape") { setBgUrlInput(false); setBgUrlValue(""); }
+              }}
+              placeholder="https://... or clear"
+              className="w-36 px-2 py-0.5 text-caption border border-surface-tertiary rounded-soft focus:outline-none"
+              autoFocus
+            />
+            <button onClick={() => { setBgUrlInput(false); setBgUrlValue(""); }} className="px-1.5 text-caption text-red-500 hover:bg-red-50 rounded-soft">✕</button>
+          </div>
+        )}
+        {hasCustomBg && !bgUrlInput && (
+          <button
+            onClick={() => { onSetBackground(section.id, ""); }}
+            className="w-7 h-7 flex items-center justify-center rounded-soft bg-white/90 border border-red-200 text-caption text-red-500 hover:bg-red-50 transition-all shadow-soft mt-1"
+            title="Remove background"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M1 1l10 10M11 1L1 11" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
       <div className="relative max-w-6xl mx-auto px-6">
         <SectionRenderer
           section={section}
@@ -1265,6 +1321,20 @@ export function PreviewPageClient() {
   const [showMutationPanel, setShowMutationPanel] = useState(false);
   const [exportMode, setExportMode] = useState(false);
 
+  // Custom background URL handler per section
+  const setSectionBackground = useCallback((sectionId: string, url: string) => {
+    if (!layoutSchema) return;
+    const updated = {
+      ...layoutSchema,
+      sections: layoutSchema.sections.map((s) =>
+        s.id === sectionId
+          ? { ...s, content: { ...s.content, __background: url } }
+          : s
+      ),
+    };
+    useGenerationStore.getState().setLayoutSchema(updated);
+  }, [layoutSchema]);
+
   // Google Fonts dynamic loading
   useEffect(() => {
     if (!contextProfile) return;
@@ -1286,6 +1356,22 @@ export function PreviewPageClient() {
       const el = document.getElementById("dynamo-google-fonts");
       if (el) el.remove();
     };
+  }, [contextProfile]);
+
+  // Apply brand colors as CSS custom properties (fix: hardcoded :root vars)
+  useEffect(() => {
+    if (!contextProfile) return;
+    const root = document.documentElement;
+    root.style.setProperty("--brand-primary", contextProfile.primaryColor);
+    root.style.setProperty("--brand-secondary", contextProfile.secondaryColor);
+    root.style.setProperty("--brand-accent", contextProfile.accentColor);
+    const light = contextProfile.primaryColor + "99";
+    root.style.setProperty("--brand-primary-light", light);
+    const dark = contextProfile.primaryColor;
+    root.style.setProperty("--brand-primary-dark", dark);
+    root.style.setProperty("--font-heading", `'${contextProfile.primaryFont}', sans-serif`);
+    root.style.setProperty("--font-body", `'${contextProfile.secondaryFont}', sans-serif`);
+    root.style.setProperty("--font-mono", "'JetBrains Mono', monospace");
   }, [contextProfile]);
 
   // Scroll animation with IntersectionObserver
@@ -1376,11 +1462,10 @@ export function PreviewPageClient() {
             style={{ maxWidth: currentDevice.width }}
           >
             {layoutSchema.sections.map((section, index) => (
-              <SectionPreview key={section.id} section={section} sectionIndex={index} totalSections={layoutSchema.sections.length} />
+              <SectionPreview key={section.id} section={section} sectionIndex={index} totalSections={layoutSchema.sections.length} onSetBackground={setSectionBackground} />
             ))}
           </div>
         </div>
-      </div>
 
       {showMutationPanel && (
         <div className="w-80 border-l border-surface-tertiary bg-surface overflow-y-auto p-4 space-y-6">
