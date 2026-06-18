@@ -105,6 +105,7 @@ Include at least 2 microcopy items and 1 story item. Return ONLY valid JSON.`;
 
 async function llmGenerateLayout(
   context: ContextProfile,
+  copy: CopyElement[],
   settings: UserSettings,
   researchContext?: string
 ): Promise<LayoutSchema | null> {
@@ -114,7 +115,7 @@ async function llmGenerateLayout(
       ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
       : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
     const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
-    const system = `You are a world-class UI engineer who designs like a human art director, not an AI template machine. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).`;
+    const system = `You are a world-class UI engineer who designs like a human art director, not an AI template machine. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
 ${langNote}
 
 DESIGN SYSTEM-FIRST APPROACH:
@@ -151,8 +152,7 @@ Output JSON with:
       "spacing": "compact|comfortable|spacious|breathing",
       "content": {
         "headline": "specific headline for this section",
-        "subheadline": "supporting description",
-        ...section-specific fields
+        "subheadline": "supporting description"
       }
     }
   ],
@@ -165,37 +165,25 @@ Output JSON with:
 }
 
 RULES:
-- Pick 4-8 sections that tell the best story for "${context.niche}" — choose section TYPES and ORDER that match this specific industry
-- CRITICAL: Generate ORIGINAL, niche-specific content for each section. Do NOT use generic phrases like "transform your business" or "take your productivity to the next level"
+- Pick 4-8 sections that tell the best story for "${context.niche}"
+- CRITICAL: Generate ORIGINAL, niche-specific content for each section
 - Use vocabulary specific to ${context.niche} industry
 
-EXACT content keys per section type (use these EXACT field names in the content object):
+EXACT content keys per section type:
 
-hero content: { "headline": "...", "subheadline": "...", "cta": "...", "badge?": "optional badge" }
-
-features content: { "title": "...", "subtitle": "...", "feature_1_title": "...", "feature_1_desc": "...", "feature_2_title": "...", "feature_2_desc": "...", "feature_3_title": "...", "feature_3_desc": "..." }
-
-testimonials content: { "title": "...", "subtitle": "...", "quote_1": "...", "name_1": "...", "role_1": "...", "quote_2": "...", "name_2": "...", "role_2": "..." }
-
-pricing content: { "title": "...", "subtitle": "...", "plan_1_name": "...", "plan_1_price": "$...", "plan_1_desc": "...", "plan_1_feat_1": "...", "plan_1_feat_2": "...", "plan_1_feat_3": "...", "plan_1_feat_4": "...", "plan_2_name": "...", "plan_2_price": "$...", "plan_2_feat_1": "...", "plan_2_feat_2": "...", "plan_3_name": "...", "plan_3_price": "$..." }
-
-cta content: { "headline": "...", "subheadline": "...", "button": "..." }
-
-faq content: { "title": "...", "subtitle": "...", "q_1": "...", "a_1": "...", "q_2": "...", "a_2": "...", "q_3": "...", "a_3": "..." }
-
-stats content: { "stat_1_value": "...", "stat_1_label": "...", "stat_2_value": "...", "stat_2_label": "...", "stat_3_value": "...", "stat_3_label": "...", "stat_4_value": "...", "stat_4_label": "..." }
-
-gallery content: { "title": "...", "subtitle": "..." }
-
-logos content: { "title": "..." }
-
-contact content: { "title": "...", "subtitle": "...", "email": "...", "phone": "..." }
-
-team content: { "title": "...", "subtitle": "...", "member_1_name": "...", "member_1_role": "...", "member_2_name": "...", "member_2_role": "...", "member_3_name": "..." }
-
-comparison content: { "title": "...", "subtitle": "...", "col_1_name": "Our Product", "col_1_feat_1": "...", "col_1_feat_2": "...", "col_2_name": "Others", "col_2_feat_1": "...", "col_2_feat_2": "..." }
-
-timeline content: { "title": "...", "subtitle": "...", "step_1_title": "...", "step_1_desc": "...", "step_2_title": "...", "step_2_desc": "...", "step_3_title": "...", "step_3_desc": "...", "step_4_title": "..." }
+hero: {"headline","subheadline","cta","badge?"}
+features: {"title","subtitle","feature_1_title","feature_1_desc","feature_2_title","feature_2_desc","feature_3_title","feature_3_desc"}
+testimonials: {"title","subtitle","quote_1","name_1","role_1","company_1","quote_2","name_2","role_2","company_2"}
+pricing: {"title","subtitle","plan_1_name","plan_1_price","plan_1_desc","plan_1_feat_1..4","plan_1_cta","plan_2_name","plan_2_price","plan_2_feat_1..4","plan_2_cta","plan_3_name","plan_3_price","plan_3_feat_1..4","plan_3_cta"}
+cta: {"headline","subheadline","button"}
+faq: {"title","subtitle","q_1","a_1","q_2","a_2","q_3","a_3"}
+stats: {"title","stat_1_value","stat_1_label","stat_2_value","stat_2_label","stat_3_value","stat_3_label","stat_4_value","stat_4_label"}
+gallery: {"title","subtitle","category_1..4","tag_1..6"}
+logos: {"title","logo_1..logo_6"}
+contact: {"title","subtitle","email","phone","address","hours","cta"}
+comparison: {"title","subtitle","row_1..6","our_val_1..6","their_val_1..6"}
+timeline: {"title","subtitle","year_1..5","event_1..5","desc_1..5"}
+team: {"title","subtitle","name_1..4","role_1..4","bio_1..4"}
 
 ONLY valid JSON. No markdown.`;
 
@@ -294,7 +282,7 @@ export async function runAgent3(
   }
 
   if (settings?.apiKey) {
-    const llmResult = await llmGenerateLayout(effectiveContext, settings, researchContext);
+    const llmResult = await llmGenerateLayout(effectiveContext, copy || [], settings, researchContext);
     if (llmResult) return { result: llmResult, source: "ai" };
   }
   await sleep(500 + Math.random() * 500);

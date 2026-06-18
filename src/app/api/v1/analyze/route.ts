@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeContext } from "@/lib/agents/agent1-context";
-import { callLLMService } from "@/lib/llm/direct-call";
-import { extractJsonFromResponse } from "@/lib/utils/json";
-import type { ContextProfile } from "@/types";
+import { callLLM } from "@/lib/llm/api-call";
+import type { ContextProfile, UserSettings } from "@/types";
+
+async function callLLMService(
+  provider: string,
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  model?: string,
+  responseFormat?: "json" | "text"
+) {
+  return callLLM({
+    provider: provider as any,
+    apiKey,
+    model: model || "",
+    systemPrompt,
+    userPrompt,
+    responseFormat,
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +56,7 @@ Return ONLY valid JSON, no explanations.`;
           "json",
         );
 
-        const context = JSON.parse(extractJsonFromResponse(result.content)) as ContextProfile;
+        const context = JSON.parse(result.content) as ContextProfile;
         return NextResponse.json({
           context,
           llm: true,
