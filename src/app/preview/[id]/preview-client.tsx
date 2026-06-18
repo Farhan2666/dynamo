@@ -2,14 +2,15 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useGenerationStore, useUIStore } from "@/lib/store";
+import { useGenerationStore, useUIStore, useSettingsStore } from "@/lib/store";
 import { Button } from "@/components/ui";
-import type { Section, MutationOptions, SEOData } from "@/types";
+import type { Section, MutationOptions, SEOData, SavedPage, LayoutSchema } from "@/types";
 import { regenerateLayout } from "@/lib/layout-engine/mutation-engine";
 import { EditableText } from "@/components/editable-text";
 import { ImageUpload } from "@/components/image-upload";
 import { ContactForm } from "@/components/contact-form";
 import { ExportPanel } from "@/components/ui";
+import { runAgent3 } from "@/lib/agents/orchestrator";
 
 const DEVICE_SIZES = [
   { id: "mobile", width: 375, label: "Mobile", icon: "\u{1F4F1}" },
@@ -1321,6 +1322,16 @@ export function PreviewPageClient() {
   const [showMutationPanel, setShowMutationPanel] = useState(false);
   const [exportMode, setExportMode] = useState(false);
   const [showPageSettings, setShowPageSettings] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showPagesModal, setShowPagesModal] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
+  const [abVariants, setAbVariants] = useState<Array<{ id: string; name: string; layout: LayoutSchema }>>([]);
+  const [activeVariant, setActiveVariant] = useState<string | null>(null);
+  const [lang, setLang] = useState("en");
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishedVersions, setPublishedVersions] = useState<Array<{id: string; timestamp: number; name: string; layout: LayoutSchema}>>([]);
 
   // Custom background URL handler per section
   const setSectionBackground = useCallback((sectionId: string, url: string) => {
@@ -1443,6 +1454,30 @@ export function PreviewPageClient() {
     }
   }, [layoutSchema?.analytics]);
 
+  // Load published versions from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("dynamo-published");
+      if (stored) setPublishedVersions(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const handlePublish = useCallback(() => {
+    if (!layoutSchema || !contextProfile) return;
+    const id = crypto.randomUUID();
+    const entry = {
+      id,
+      timestamp: Date.now(),
+      name: contextProfile.niche + " - " + new Date().toLocaleDateString(),
+      layout: layoutSchema,
+    };
+    const stored = JSON.parse(localStorage.getItem("dynamo-published") || "[]");
+    stored.push(entry);
+    localStorage.setItem("dynamo-published", JSON.stringify(stored));
+    setPublishedVersions(stored);
+    addToast("Published! Use the modal to copy link or download HTML.", "success");
+  }, [layoutSchema, contextProfile, addToast]);
+
   const currentDevice = DEVICE_SIZES.find((d) => d.id === device) || DEVICE_SIZES[2];
 
   const handleRegenerate = async (mode: string) => {
@@ -1476,6 +1511,60 @@ export function PreviewPageClient() {
       analytics: { ...layoutSchema.analytics || { gaId: "", metaPixelId: "" }, [field]: value },
     });
   }, [layoutSchema]);
+
+  // --- Multi-language regenerate ---
+  const handleLangRegenerate = useCallback(async () => {
+    if (!layoutSchema || !contextProfile) return;
+    addToast("Generating in " + lang.toUpperCase() + "...", "info");
+    try {
+      const { settings } = useSettingsStore.getState();
+      if (!settings.apiKey) {
+        addToast("Please set up your API key first", "error");
+        return;
+      }
+      const langContext = { ...contextProfile, language: lang };
+      const { result } = await runAgent3(langContext, copyElements, settings, null);
+      useGenerationStore.getState().setLayoutSchema(result);
+      addToast("Page regenerated in " + lang.toUpperCase() + "!", "success");
+    } catch {
+      addToast("Generation in " + lang.toUpperCase() + " failed", "error");
+    }
+  }, [layoutSchema, contextProfile, copyElements, lang, addToast]);
+
+  // --- A/B Variant ---
+  const handleCreateVariant = useCallback(async () => {
+    if (!layoutSchema) return;
+    const id = crypto.randomUUID();
+    const clone: LayoutSchema = JSON.parse(JSON.stringify(layoutSchema));
+    const name = "Variant " + (abVariants.length + 1);
+    addToast("Creating " + name + "...", "info");
+    try {
+      const { settings } = useSettingsStore.getState();
+      if (settings.apiKey && contextProfile) {
+        const { result } = await runAgent3(contextProfile, copyElements, settings, null);
+        if (result) {
+          setAbVariants(prev => [...prev, { id, name, layout: result }]);
+          setActiveVariant(name);
+          addToast(name + " created!", "success");
+          return;
+        }
+      }
+      setAbVariants(prev => [...prev, { id, name, layout: clone }]);
+      setActiveVariant(name);
+      addToast(name + " created (offline mode)", "info");
+    } catch {
+      setAbVariants(prev => [...prev, { id, name, layout: clone }]);
+      setActiveVariant(name);
+      addToast(name + " created", "success");
+    }
+  }, [layoutSchema, contextProfile, copyElements, abVariants.length, addToast]);
+
+  const handleSelectVariant = useCallback((variant: { id: string; name: string; layout: LayoutSchema }) => {
+    if (variant.layout) {
+      useGenerationStore.getState().setLayoutSchema(variant.layout);
+      setActiveVariant(variant.name);
+    }
+  }, []);
 
   if (!layoutSchema) {
     return (
@@ -1523,6 +1612,65 @@ export function PreviewPageClient() {
               className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
             >
               Page Settings
+            </button>
+            <button
+              onClick={() => { setSaveName(""); setShowSaveDialog(true); }}
+              className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setShowPagesModal(true)}
+              className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
+            >
+              Pages
+            </button>
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary bg-surface hover:bg-surface-tertiary transition-colors cursor-pointer"
+            >
+              <option value="en">EN</option>
+              <option value="id">ID</option>
+              <option value="ar">AR</option>
+              <option value="fr">FR</option>
+              <option value="es">ES</option>
+              <option value="zh">ZH</option>
+              <option value="ja">JA</option>
+              <option value="ko">KO</option>
+            </select>
+            <button
+              onClick={handleLangRegenerate}
+              className="px-3 py-1.5 rounded-soft bg-brand-primary text-white text-caption font-medium hover:opacity-90 transition-all whitespace-nowrap"
+            >
+              Generate in {lang.toUpperCase()}
+            </button>
+            {abVariants.length > 0 && (
+              <select
+                value={activeVariant || ""}
+                onChange={(e) => {
+                  const v = abVariants.find(x => x.id === e.target.value);
+                  if (v) handleSelectVariant(v);
+                }}
+                className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary bg-surface hover:bg-surface-tertiary transition-colors cursor-pointer"
+              >
+                <option value="">Variant ({abVariants.length})</option>
+                {abVariants.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={handleCreateVariant}
+              className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors whitespace-nowrap"
+            >
+              + Create Variant
+            </button>
+            <button
+              onClick={() => setShowPublishModal(true)}
+              className="px-3 py-1.5 rounded-soft bg-green-600 text-white text-caption font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+            >
+              Publish
             </button>
           </div>
         </div>
@@ -1702,6 +1850,313 @@ export function PreviewPageClient() {
           </div>
         </div>
       )}
+
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowSaveDialog(false)}>
+          <div className="bg-white rounded-xl shadow-strong p-6 w-full max-w-sm mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-heading font-bold text-lg">Save Page</h3>
+            <input
+              autoFocus
+              className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="My Page Name"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && saveName.trim()) {
+                  useGenerationStore.getState().saveCurrentPage(saveName.trim());
+                  addToast("Page saved!", "success");
+                  setShowSaveDialog(false);
+                }
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+              <Button variant="primary" disabled={!saveName.trim()} onClick={() => {
+                useGenerationStore.getState().saveCurrentPage(saveName.trim());
+                addToast("Page saved!", "success");
+                setShowSaveDialog(false);
+              }}>Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPagesModal && (() => {
+        const { savedPages, loadPage, deletePage, renamePage } = useGenerationStore.getState();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setShowPagesModal(false); setRenamingId(null); }}>
+            <div className="bg-white rounded-xl shadow-strong p-6 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="font-heading font-bold text-lg">Saved Pages</h3>
+                <button onClick={() => { setShowPagesModal(false); setRenamingId(null); }} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface-tertiary text-text-muted hover:text-text-primary transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+              {savedPages.length === 0 ? (
+                <p className="text-body-sm text-text-muted py-8 text-center">No saved pages yet.</p>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {savedPages.map((page) => (
+                    <div key={page.id} className="flex items-center gap-2 p-3 rounded-soft border border-surface-tertiary hover:border-brand-primary/30 transition-colors group">
+                      {renamingId === page.id ? (
+                        <input
+                          autoFocus
+                          className="flex-1 border border-brand-primary rounded-soft px-2 py-1 text-body-sm focus:outline-none"
+                          value={renameVal}
+                          onChange={(e) => setRenameVal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && renameVal.trim()) {
+                              renamePage(page.id, renameVal.trim());
+                              setRenamingId(null);
+                            }
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          onBlur={() => setRenamingId(null)}
+                        />
+                      ) : (
+                        <button
+                          className="flex-1 text-left"
+                          onClick={() => { loadPage(page.id); addToast(`Loaded "${page.name}"`, "success"); setShowPagesModal(false); }}
+                        >
+                          <div className="text-body-sm font-medium">{page.name}</div>
+                          <div className="text-caption text-text-muted">{new Date(page.updatedAt).toLocaleDateString()}</div>
+                        </button>
+                      )}
+                      <button
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-soft hover:bg-surface-tertiary text-text-muted hover:text-text-primary transition-all"
+                        onClick={() => { setRenamingId(page.id); setRenameVal(page.name); }}
+                        title="Rename"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M8.5 1.5l2 2L3.5 10.5l-2.5.5.5-2.5L8.5 1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-soft hover:bg-red-50 text-text-muted hover:text-red-600 transition-all"
+                        onClick={() => { deletePage(page.id); addToast("Page deleted", "info"); }}
+                        title="Delete"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M1.5 3h9M4 3V1.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V3M2.5 3v7.5a1 1 0 001 1h5a1 1 0 001-1V3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {showPublishModal && (() => {
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPublishModal(false)}>
+            <div className="bg-white rounded-xl shadow-strong p-6 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="font-heading font-bold text-lg">Publish Page</h3>
+                <button onClick={() => setShowPublishModal(false)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface-tertiary text-text-muted hover:text-text-primary transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={handlePublish}
+                >
+                  Publish Current Version
+                </Button>
+
+                {publishedVersions.length > 0 && (
+                  <>
+                    <h4 className="text-caption font-semibold text-text-muted uppercase tracking-wider mt-4 mb-2">
+                      Published Versions
+                    </h4>
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {publishedVersions.map((v) => (
+                        <div key={v.id} className="flex items-center justify-between p-3 rounded-soft border border-surface-tertiary">
+                          <div>
+                            <div className="text-body-sm font-medium">{v.name}</div>
+                            <div className="text-caption text-text-muted">{new Date(v.timestamp).toLocaleString()}</div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              className="px-2 py-1 text-caption font-medium text-brand-primary hover:bg-brand-primary/5 rounded-soft transition-colors"
+                              onClick={() => {
+                                try {
+                                  const json = JSON.stringify(v.layout, null, 2);
+                                  const blob = new Blob([json], { type: "application/json" });
+                                  const url = URL.createObjectURL(blob);
+                                  navigator.clipboard.writeText(url).then(() => addToast("Link copied!", "success"));
+                                } catch {
+                                  addToast("Failed to copy link", "error");
+                                }
+                              }}
+                            >
+                              Copy Link
+                            </button>
+                            <button
+                              className="px-2 py-1 text-caption font-medium text-green-600 hover:bg-green-50 rounded-soft transition-colors"
+                              onClick={() => {
+                                try {
+                                  const html = generateStaticHtml(v.layout);
+                                  const blob = new Blob([html], { type: "text/html" });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = v.name.replace(/[^a-zA-Z0-9]/g, "-") + ".html";
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                  addToast("HTML downloaded!", "success");
+                                } catch {
+                                  addToast("Failed to download HTML", "error");
+                                }
+                              }}
+                            >
+                              Download HTML
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <p className="text-caption text-text-muted pt-2">Published pages are stored locally in your browser.</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function generateStaticHtml(layout: LayoutSchema): string {
+  const sectionsHtml = layout.sections.map((section) => {
+    const c = section.content;
+    switch (section.type) {
+      case "hero":
+        return `<section style="padding:80px 24px;text-align:center;">
+          <div style="max-width:800px;margin:0 auto;">
+            <h1 style="font-size:48px;font-weight:800;line-height:1.1;margin-bottom:16px;">${escapeHtml(c.headline || "")}</h1>
+            <p style="font-size:20px;color:#666;margin-bottom:32px;">${escapeHtml(c.subheadline || "")}</p>
+            <a style="display:inline-block;padding:14px 32px;background:#6E56CF;color:white;border-radius:8px;text-decoration:none;font-weight:600;">${escapeHtml(c.cta || "Get Started")}</a>
+          </div>
+        </section>`;
+      case "features":
+        return `<section style="padding:80px 24px;background:#f8f8fb;">
+          <div style="max-width:900px;margin:0 auto;text-align:center;">
+            <h2 style="font-size:36px;font-weight:700;margin-bottom:8px;">${escapeHtml(c.title || "Features")}</h2>
+            <p style="font-size:18px;color:#666;margin-bottom:48px;">${escapeHtml(c.subtitle || "")}</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:left;">
+              ${[1,2,3].map(i => `
+                <div style="padding:24px;background:white;border-radius:12px;border:1px solid #eee;">
+                  <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">${escapeHtml(c["feature_" + i + "_title"] || "")}</h3>
+                  <p style="font-size:14px;color:#666;line-height:1.6;">${escapeHtml(c["feature_" + i + "_desc"] || "")}</p>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </section>`;
+      case "testimonials":
+        return `<section style="padding:80px 24px;">
+          <div style="max-width:800px;margin:0 auto;text-align:center;">
+            <h2 style="font-size:36px;font-weight:700;margin-bottom:8px;">${escapeHtml(c.title || "Testimonials")}</h2>
+            <p style="font-size:18px;color:#666;margin-bottom:48px;">${escapeHtml(c.subtitle || "")}</p>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px;text-align:left;">
+              ${[1,2].map(i => `
+                <div style="padding:24px;background:#f8f8fb;border-radius:12px;">
+                  <p style="font-size:14px;color:#666;line-height:1.6;margin-bottom:16px;font-style:italic;">&ldquo;${escapeHtml(c["quote_" + i] || "")}&rdquo;</p>
+                  <div style="font-weight:600;">${escapeHtml(c["name_" + i] || "")}</div>
+                  <div style="font-size:13px;color:#999;">${escapeHtml(c["role_" + i] || "")}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </section>`;
+      case "pricing":
+        return `<section style="padding:80px 24px;background:#f8f8fb;">
+          <div style="max-width:900px;margin:0 auto;text-align:center;">
+            <h2 style="font-size:36px;font-weight:700;margin-bottom:8px;">${escapeHtml(c.title || "Pricing")}</h2>
+            <p style="font-size:18px;color:#666;margin-bottom:48px;">${escapeHtml(c.subtitle || "")}</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+              ${[1,2,3].map(i => `
+                <div style="padding:32px;background:white;border-radius:12px;border:1px solid #eee;">
+                  <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;">${escapeHtml(c["plan_" + i + "_name"] || "Plan " + i)}</h3>
+                  <div style="font-size:36px;font-weight:800;margin-bottom:16px;">${escapeHtml(c["plan_" + i + "_price"] || "$0")}</div>
+                  <p style="font-size:14px;color:#666;margin-bottom:16px;">${escapeHtml(c["plan_" + i + "_desc"] || "")}</p>
+                  <a style="display:inline-block;padding:10px 24px;background:#6E56CF;color:white;border-radius:8px;text-decoration:none;font-weight:600;">${escapeHtml(c["plan_" + i + "_cta"] || "Choose")}</a>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </section>`;
+      case "cta":
+        return `<section style="padding:80px 24px;background:linear-gradient(135deg,#6E56CF,#8B5CF6);color:white;text-align:center;">
+          <div style="max-width:600px;margin:0 auto;">
+            <h2 style="font-size:36px;font-weight:700;margin-bottom:16px;">${escapeHtml(c.headline || "Ready?")}</h2>
+            <p style="font-size:18px;opacity:0.9;margin-bottom:32px;">${escapeHtml(c.subheadline || "")}</p>
+            <a style="display:inline-block;padding:14px 32px;background:white;color:#6E56CF;border-radius:8px;text-decoration:none;font-weight:600;">${escapeHtml(c.button || c.cta || "Get Started")}</a>
+          </div>
+        </section>`;
+      case "faq":
+        return `<section style="padding:80px 24px;">
+          <div style="max-width:700px;margin:0 auto;">
+            <h2 style="font-size:36px;font-weight:700;margin-bottom:8px;text-align:center;">${escapeHtml(c.title || "FAQ")}</h2>
+            <p style="font-size:18px;color:#666;margin-bottom:48px;text-align:center;">${escapeHtml(c.subtitle || "")}</p>
+            ${[1,2,3].map(i => `
+              <div style="padding:16px 0;border-bottom:1px solid #eee;">
+                <div style="font-weight:600;margin-bottom:8px;">${escapeHtml(c["q_" + i] || "Question " + i + "?")}</div>
+                <div style="font-size:14px;color:#666;line-height:1.6;">${escapeHtml(c["a_" + i] || "")}</div>
+              </div>
+            `).join("")}
+          </div>
+        </section>`;
+      case "stats":
+        return `<section style="padding:80px 24px;background:#6E56CF;color:white;text-align:center;">
+          <div style="max-width:800px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;">
+            ${[1,2,3,4].map(i => `
+              <div>
+                <div style="font-size:40px;font-weight:800;margin-bottom:4px;">${escapeHtml(c["stat_" + i + "_value"] || "—")}</div>
+                <div style="font-size:14px;opacity:0.8;">${escapeHtml(c["stat_" + i + "_label"] || "")}</div>
+              </div>
+            `).join("")}
+          </div>
+        </section>`;
+      default:
+        return `<section style="padding:60px 24px;">
+          <div style="max-width:800px;margin:0 auto;text-align:center;">
+            <h2 style="font-size:28px;font-weight:700;">${escapeHtml(c.title || section.type)}</h2>
+          </div>
+        </section>`;
+    }
+  }).join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(layout.seo?.title || "Landing Page")}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111; line-height: 1.5; }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+${sectionsHtml}
+</body>
+</html>`;
 }

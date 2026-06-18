@@ -135,6 +135,17 @@ export interface MutationOptions {
   mode: "professional" | "playful" | "surprise";
 }
 
+export interface SavedPage {
+  id: string;
+  name: string;
+  prompt: string;
+  contextProfile: ContextProfile | null;
+  copyElements: CopyElement[];
+  layoutSchema: LayoutSchema;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface UserSettings {
   llmProvider: LLMProvider;
   apiKey: string;

@@ -7,6 +7,7 @@ import type {
   LayoutSchema,
   CopyElement,
   UserSettings,
+  SavedPage,
 } from "@/types";
 import type { ReviewReport } from "@/lib/agents/agent5-reviewer";
 import type { HeadlineScore } from "@/lib/utils/page-analytics";
@@ -65,6 +66,11 @@ interface GenerationStore {
   regenerateSection: (sectionId: string) => void;
   reorderSections: (fromIndex: number, toIndex: number) => void;
   resetAll: () => void;
+  savedPages: SavedPage[];
+  saveCurrentPage: (name: string) => void;
+  loadPage: (pageId: string) => void;
+  deletePage: (pageId: string) => void;
+  renamePage: (pageId: string, name: string) => void;
 }
 
 const initialGenState = {
@@ -81,6 +87,7 @@ const initialGenState = {
   promptHistory: [],
   headlineVariants: [],
   showHeadlineTester: false,
+  savedPages: [],
 };
 
 export const useGenerationStore = create<GenerationStore>()(
@@ -141,6 +148,44 @@ export const useGenerationStore = create<GenerationStore>()(
       return { layoutSchema: { ...state.layoutSchema, sections: reordered } };
     }),
   resetAll: () => set(initialGenState),
+  saveCurrentPage: (name) =>
+    set((state) => {
+      if (!state.layoutSchema) return {};
+      const existing = state.savedPages.find((p) => p.name === name);
+      const page: SavedPage = {
+        id: existing?.id || crypto.randomUUID(),
+        name,
+        prompt: state.prompt,
+        contextProfile: state.contextProfile,
+        copyElements: state.copyElements,
+        layoutSchema: state.layoutSchema,
+        createdAt: existing?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+      const filtered = state.savedPages.filter((p) => p.id !== page.id);
+      return { savedPages: [...filtered, page] };
+    }),
+  loadPage: (pageId) =>
+    set((state) => {
+      const page = state.savedPages.find((p) => p.id === pageId);
+      if (!page) return {};
+      return {
+        prompt: page.prompt,
+        contextProfile: page.contextProfile,
+        copyElements: page.copyElements,
+        layoutSchema: page.layoutSchema,
+      };
+    }),
+  deletePage: (pageId) =>
+    set((state) => ({
+      savedPages: state.savedPages.filter((p) => p.id !== pageId),
+    })),
+  renamePage: (pageId, name) =>
+    set((state) => ({
+      savedPages: state.savedPages.map((p) =>
+        p.id === pageId ? { ...p, name, updatedAt: Date.now() } : p
+      ),
+    })),
 }),
 {
   name: "dynamo-generation",
@@ -154,6 +199,7 @@ export const useGenerationStore = create<GenerationStore>()(
     layoutDensity: state.layoutDensity,
     promptHistory: state.promptHistory,
     headlineVariants: state.headlineVariants,
+    savedPages: state.savedPages,
   }),
 }
 ));
