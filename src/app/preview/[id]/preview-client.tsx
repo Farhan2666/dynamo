@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGenerationStore, useUIStore, useSettingsStore } from "@/lib/store";
 import { Button } from "@/components/ui";
-import type { Section, MutationOptions, SEOData, SavedPage, LayoutSchema } from "@/types";
+import type { Section, MutationOptions, SEOData, LayoutSchema } from "@/types";
 import { regenerateLayout } from "@/lib/layout-engine/mutation-engine";
 import { EditableText } from "@/components/editable-text";
 import { ImageUpload } from "@/components/image-upload";

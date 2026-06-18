@@ -1,4 +1,4 @@
-import type { ContextProfile, LayoutSchema, DesignSystem, Section, SpacingScale } from "@/types";
+import type { ContextProfile, LayoutSchema, DesignSystem, Section } from "@/types";
 import { selectPattern } from "../layout-engine/patterns";
 
 const WCAG_MIN_CONTRAST = 4.5;
