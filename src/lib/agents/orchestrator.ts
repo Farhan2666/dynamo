@@ -59,24 +59,33 @@ async function llmGenerateCopy(
   try {
     const lang = context.language || "en";
     const langNote = lang === "id"
-      ? "BAHASA: Semua teks harus dalam BAHASA INDONESIA. Gunakan kata-kata yang relevan dengan industri ini."
-      : `LANGUAGE: All text must be in ${lang === "en" ? "ENGLISH" : `"${lang}"`}. Use industry-specific vocabulary.`;
-    const system = `You are a conversion copywriter for a ${context.niche} landing page targeting ${context.audiencePersona}.
-Mood/profile: ${context.moodProfile} | ${context.audiencePersona}
+      ? "BAHASA: Semua teks harus dalam BAHASA INDONESIA. Gunakan kata-kata Indonesia yang alami dan spesifik untuk industri ini."
+      : "LANGUAGE: All text must be in ENGLISH with industry-specific vocabulary.";
+    const system = `You are a world-class conversion copywriter who writes like a human marketer, not an AI. Generate marketing copy for a landing page targeting ${context.audiencePersona} in the ${context.niche} industry.
+Mood: ${context.moodProfile}.
+
 ${langNote}
 
 CRITICAL RULES:
-- Create ORIGINAL, UNIQUE copy specific to ${context.niche} — do NOT use generic phrases like "transform your business" or "take your productivity to the next level"
-- Use specific vocabulary related to ${context.niche} and ${context.industryTags.join(", ")}
-- Each headline/subheader/cta must feel like it was written by someone who deeply understands this specific niche
-- Avoid: "cutting-edge", "next-gen", "revolutionary", "game-changer", "innovative", "seamless"
+- Create ORIGINAL, UNIQUE copy specific to ${context.niche} — avoid generic phrases
+- Use specific vocabulary related to ${context.industryTags.join(", ")}
+- Each headline/subheader/cta must feel deeply specific to this niche
+
+CONTENT-DRIVEN DESIGN APPROACH:
+- Write the content FIRST, as if it's a real brand's website copy.
+- Make headlines specific and opinionated.
+- Include a hook that grabs attention emotionally.
+- Write micro-copy (short, punchy phrases for buttons, badges, footnotes).
+- Include real-feeling social proof (stats, user counts, testimonials).
 
 Output a JSON array of objects with:
-- type: "headline" | "subheader" | "cta" | "benefit" | "seo"
-- content: string (the copy text - MUST be niche-specific)
+- type: "headline" | "subheader" | "cta" | "benefit" | "seo" | "story" | "microcopy" | "social_proof"
+- content: string
 - variants: string[] (2-3 alternative phrasings)
+- hook: string (optional, for headlines)
+- tone: string (optional)
 
-ONLY valid JSON array starting with [ and ending with ]. No markdown.`;
+Include at least 2 microcopy items and 1 story item. Return ONLY valid JSON.`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
@@ -102,17 +111,35 @@ async function llmGenerateLayout(
   try {
     const lang = context.language || "en";
     const langNote = lang === "id"
-      ? "BAHASA: Semua teks WAJIB BAHASA INDONESIA."
-      : `LANGUAGE: All text in ${lang === "en" ? "ENGLISH" : `"${lang}"`}.`;
-
-    const system = `You are a UI engineer designing a landing page for "${context.niche}" (mood: ${context.moodProfile}) targeting ${context.audiencePersona}.
+      ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
+      : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
+    const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
+    const system = `You are a world-class UI engineer who designs like a human art director, not an AI template machine. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).`;
 ${langNote}
 
-Brand assets:
-- Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}
-- Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}
+DESIGN SYSTEM-FIRST APPROACH:
+Before writing any UI code, define a complete design system:
+- Color roles: primary, secondary, accent, surface, text, border with specific hex values
+- Typography: display font (expressive), heading font, body font with specific sizes/weights
+- Spacing: section padding, container max-width, grid gaps, stack gaps
+- Border radius scale
+- Shadow system
 
-Output JSON with layout AND content. Follow this EXACT format:
+Then generate the layout WITHIN these constraints.
+
+INTENTIONAL ASYMMETRY:
+This page MUST NOT look AI-generated (too symmetrical). Apply:
+- Broken grids, overlapping sections, staggered cards
+- Clipped corners or diagonal clip-paths
+- Odd-numbered grids, floating CTA with negative margin
+- Varying card heights, content bleeding past containers
+
+Output JSON with:
+- layout: centered|asymmetric|split|full-width|grid|broken-grid|diagonal|bleed
+- sections: array of {id, type, order, content (ALL fields filled), twClasses, spacing}
+- animations: {type, intensity 1-5, springPhysics}
+- twConfig: string array with design system variables
+- designSystem (object): the complete design system
 
 {
   "layout": "centered|asymmetric|split|full-width|grid (pick best for ${context.niche})",
@@ -146,19 +173,19 @@ EXACT content keys per section type (use these EXACT field names in the content 
 
 hero content: { "headline": "...", "subheadline": "...", "cta": "...", "badge?": "optional badge" }
 
-features content: { "title": "...", "subtitle": "...", "feature_1_title": "...", "feature_1_desc": "...", "feature_2_title": "...", "feature_2_desc": "...", "feature_3_title": "...", "feature_3_desc": "..." } — provide 3-4 features with numbered keys
+features content: { "title": "...", "subtitle": "...", "feature_1_title": "...", "feature_1_desc": "...", "feature_2_title": "...", "feature_2_desc": "...", "feature_3_title": "...", "feature_3_desc": "..." }
 
-testimonials content: { "title": "...", "subtitle": "...", "quote_1": "...", "name_1": "...", "role_1": "...", "quote_2": "...", "name_2": "...", "role_2": "..." } — provide 2-3 testimonials with numbered keys
+testimonials content: { "title": "...", "subtitle": "...", "quote_1": "...", "name_1": "...", "role_1": "...", "quote_2": "...", "name_2": "...", "role_2": "..." }
 
-pricing content: { "title": "...", "subtitle": "...", "plan_1_name": "...", "plan_1_price": "$...", "plan_1_desc": "...", "plan_1_feat_1": "...", "plan_1_feat_2": "...", "plan_1_feat_3": "...", "plan_1_feat_4": "...", "plan_2_name": "...", "plan_2_price": "$...", "plan_2_feat_1": "...", "plan_2_feat_2": "...", "plan_3_name": "...", "plan_3_price": "$..." } — provide 3 plans with numbered keys
+pricing content: { "title": "...", "subtitle": "...", "plan_1_name": "...", "plan_1_price": "$...", "plan_1_desc": "...", "plan_1_feat_1": "...", "plan_1_feat_2": "...", "plan_1_feat_3": "...", "plan_1_feat_4": "...", "plan_2_name": "...", "plan_2_price": "$...", "plan_2_feat_1": "...", "plan_2_feat_2": "...", "plan_3_name": "...", "plan_3_price": "$..." }
 
 cta content: { "headline": "...", "subheadline": "...", "button": "..." }
 
-faq content: { "title": "...", "subtitle": "...", "q_1": "...", "a_1": "...", "q_2": "...", "a_2": "...", "q_3": "...", "a_3": "..." } — provide 3-5 Q&A pairs
+faq content: { "title": "...", "subtitle": "...", "q_1": "...", "a_1": "...", "q_2": "...", "a_2": "...", "q_3": "...", "a_3": "..." }
 
 stats content: { "stat_1_value": "...", "stat_1_label": "...", "stat_2_value": "...", "stat_2_label": "...", "stat_3_value": "...", "stat_3_label": "...", "stat_4_value": "...", "stat_4_label": "..." }
 
-gallery content: { "title": "...", "subtitle": "..." } (images will be added by user)
+gallery content: { "title": "...", "subtitle": "..." }
 
 logos content: { "title": "..." }
 
@@ -170,14 +197,22 @@ comparison content: { "title": "...", "subtitle": "...", "col_1_name": "Our Prod
 
 timeline content: { "title": "...", "subtitle": "...", "step_1_title": "...", "step_1_desc": "...", "step_2_title": "...", "step_2_desc": "...", "step_3_title": "...", "step_3_desc": "...", "step_4_title": "..." }
 
-- layout: choose the best style for ${context.niche}
-- twClasses: vary Tailwind padding based on section importance
-- spacing: vary per section
-
 ONLY valid JSON. No markdown.`;
 
-    const researchBlock = researchContext ? `\n\nRelevant research about ${context.niche}:\n${researchContext}` : "";
-    const userMsg = `Design a landing page structure for ${context.niche} (${context.moodProfile}) targeting ${context.audiencePersona}.${researchBlock}`;
+    const researchBlock = researchContext ? `\n\nRESEARCH INSIGHTS:\n${researchContext}` : "";
+    const userMsg = `Design a landing page layout for ${context.niche} targeting ${context.audiencePersona}. 
+
+CONTENT-DRIVEN DESIGN: The copy below was written FIRST. Design the UI to showcase this content — don't stuff it into a pre-made template.
+
+Use these copy elements as inspiration:\n${copySummary}.${researchBlock}
+
+Generate ALL section content fields — do not leave anything empty. Make every section feel like it was written by a human copywriter, not an AI.
+
+Apply the design system-first approach: output a "designSystem" object with your color roles, typography, spacing, radius, and shadows.
+
+Apply intentional asymmetry: break grids, overlap elements, use diagonal clips, stagger content, vary card heights.
+
+IMPORTANT: All content text must be in language: ${lang}.${lang === "id" ? " Gunakan BAHASA INDONESIA untuk semua teks." : ""}`;
 
     const result = await callLLM({
       provider: settings.llmProvider,

@@ -33,17 +33,22 @@ export interface ContextProfile {
 }
 
 export interface CopyElement {
-  type: "headline" | "subheader" | "cta" | "benefit" | "seo";
+  type: "headline" | "subheader" | "cta" | "benefit" | "seo" | "story" | "microcopy" | "social_proof";
   content: string;
   variants: string[];
+  tone?: string;
+  hook?: string;
+  audienceHook?: string;
 }
 
 export interface LayoutSchema {
-  layout: "centered" | "asymmetric" | "split" | "full-width" | "grid";
+  layout: "centered" | "asymmetric" | "split" | "full-width" | "grid" | "broken-grid" | "diagonal" | "bleed";
   sections: Section[];
   animations: AnimationSpec;
   twConfig: string[];
   wcagScore?: number;
+  designSystem?: DesignSystem;
+  asymmetryRules?: AsymmetryRule[];
   seo?: SEOData;
   analytics?: AnalyticsConfig;
 }
@@ -57,6 +62,106 @@ export interface SEOData {
 export interface AnalyticsConfig {
   gaId: string;
   metaPixelId: string;
+}
+
+export interface DesignSystem {
+  colors: {
+    primary: string;
+    primaryLight: string;
+    primaryDark: string;
+    secondary: string;
+    secondaryDark: string;
+    accent: string;
+    surface: string;
+    surfaceSecondary: string;
+    surfaceTertiary: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    textInverse: string;
+    border: string;
+    ring: string;
+  };
+  typography: {
+    headingFont: string;
+    bodyFont: string;
+    displayFont: string;
+    monoFont: string;
+    scale: {
+      display: string;
+      h1: string;
+      h2: string;
+      h3: string;
+      h4: string;
+      body: string;
+      small: string;
+      caption: string;
+    };
+    weights: {
+      heading: number;
+      body: number;
+      bold: number;
+      display: number;
+    };
+    letterSpacing: {
+      tight: string;
+      normal: string;
+      wide: string;
+    };
+    lineHeight: {
+      tight: string;
+      normal: string;
+      relaxed: string;
+    };
+  };
+  spacing: {
+    sectionPadding: Record<string, string>;
+    containerMaxWidth: string;
+    gridGap: string;
+    stackGap: Record<string, string>;
+    inlineGap: string;
+    sectionOverlap: string;
+  };
+  radius: {
+    none: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    full: string;
+  };
+  shadows: {
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    glow: string;
+    glowAccent: string;
+    inner: string;
+  };
+  asymmetry: AsymmetryConfig;
+  glassEffect?: boolean;
+  noiseTexture?: boolean;
+  borderVariant?: "default" | "gradient" | "glow" | "none";
+}
+
+export interface AsymmetryConfig {
+  enabled: boolean;
+  intensity: 1 | 2 | 3 | 4 | 5;
+  patterns: string[];
+  oddGrid: boolean;
+  overlappingElements: boolean;
+  staggeredHeaders: boolean;
+  brokenGrid: boolean;
+  diagonalSections: boolean;
+  clippedCorners: boolean;
+  floatingElements: boolean;
+}
+
+export interface AsymmetryRule {
+  type: "offset-grid" | "overlap" | "diagonal-clip" | "stagger" | "broken-grid" | "floating" | "clipped-corner" | "bleed";
+  targetSection?: string;
+  params: Record<string, string | number | boolean>;
 }
 
 export interface Section {
