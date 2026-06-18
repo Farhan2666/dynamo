@@ -389,11 +389,11 @@ function SectionPreview({
         onMoveDown={handleMoveDown}
         onCopyHTML={handleCopyHTML}
       />
-      <div className="absolute top-10 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-10 left-2 z-20">
         {!bgUrlInput && (
           <button
             onClick={() => setBgUrlInput(true)}
-            className="w-7 h-7 flex items-center justify-center rounded-soft bg-white/90 border border-surface-tertiary text-caption text-text-muted hover:text-brand-primary hover:bg-white transition-all shadow-soft"
+            className="w-8 h-8 flex items-center justify-center rounded-soft bg-white border border-surface-tertiary text-text-muted hover:text-brand-primary hover:border-brand-primary transition-all shadow-soft"
             title="Set section background image"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -404,36 +404,78 @@ function SectionPreview({
           </button>
         )}
         {bgUrlInput && (
-          <div className="flex gap-1 bg-white rounded-soft border border-surface-tertiary p-1 shadow-soft">
-            <input
-              type="text"
-              value={bgUrlValue}
-              onChange={(e) => setBgUrlValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && bgUrlValue.trim()) {
-                  onSetBackground(section.id, bgUrlValue.trim());
-                  setBgUrlInput(false);
-                  setBgUrlValue("");
-                }
-                if (e.key === "Escape") { setBgUrlInput(false); setBgUrlValue(""); }
-              }}
-              placeholder="https://... or clear"
-              className="w-36 px-2 py-0.5 text-caption border border-surface-tertiary rounded-soft focus:outline-none"
-              autoFocus
-            />
-            <button onClick={() => { setBgUrlInput(false); setBgUrlValue(""); }} className="px-1.5 text-caption text-red-500 hover:bg-red-50 rounded-soft">✕</button>
+          <div className="flex flex-col gap-2 bg-white rounded-soft border border-surface-tertiary p-2 shadow-soft min-w-[200px]">
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={bgUrlValue}
+                onChange={(e) => setBgUrlValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && bgUrlValue.trim()) {
+                    onSetBackground(section.id, bgUrlValue.trim());
+                    setBgUrlInput(false);
+                    setBgUrlValue("");
+                  }
+                  if (e.key === "Escape") { setBgUrlInput(false); setBgUrlValue(""); }
+                }}
+                placeholder="Image URL..."
+                className="flex-1 px-2 py-1 text-caption border border-surface-tertiary rounded-soft focus:outline-none focus:border-brand-primary"
+                autoFocus
+              />
+              <button
+                onClick={() => { if (bgUrlValue.trim()) { onSetBackground(section.id, bgUrlValue.trim()); setBgUrlInput(false); setBgUrlValue(""); } }}
+                className="px-2 py-1 text-caption font-medium text-white bg-brand-primary rounded-soft hover:opacity-90"
+              >
+                Set
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-surface-tertiary" />
+              <span className="text-caption text-text-muted">or</span>
+              <div className="flex-1 h-px bg-surface-tertiary" />
+            </div>
+            <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-caption font-medium text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/10 rounded-soft border border-brand-primary/20 cursor-pointer transition-colors">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <path d="M6 2v8M2 6h8" strokeLinecap="round" />
+              </svg>
+              Upload from Gallery
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const dataUrl = ev.target?.result as string;
+                      onSetBackground(section.id, dataUrl);
+                      setBgUrlInput(false);
+                      setBgUrlValue("");
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <div className="flex justify-end gap-1 pt-1 border-t border-surface-tertiary">
+              {hasCustomBg && (
+                <button
+                  onClick={() => { onSetBackground(section.id, ""); setBgUrlInput(false); }}
+                  className="px-2 py-1 text-caption text-red-500 hover:bg-red-50 rounded-soft transition-colors"
+                >
+                  Remove
+                </button>
+              )}
+              <button
+                onClick={() => { setBgUrlInput(false); setBgUrlValue(""); }}
+                className="px-2 py-1 text-caption text-text-muted hover:bg-surface-tertiary rounded-soft transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        )}
-        {hasCustomBg && !bgUrlInput && (
-          <button
-            onClick={() => { onSetBackground(section.id, ""); }}
-            className="w-7 h-7 flex items-center justify-center rounded-soft bg-white/90 border border-red-200 text-caption text-red-500 hover:bg-red-50 transition-all shadow-soft mt-1"
-            title="Remove background"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M1 1l10 10M11 1L1 11" strokeLinecap="round" />
-            </svg>
-          </button>
         )}
       </div>
       <div className="relative max-w-6xl mx-auto px-6">
