@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeContext } from "@/lib/agents/agent1-context";
-import { callLLM } from "@/lib/llm/api-call";
-import type { ContextProfile, UserSettings } from "@/types";
-
-async function callLLMService(
-  provider: string,
-  apiKey: string,
-  systemPrompt: string,
-  userPrompt: string,
-  model?: string,
-  responseFormat?: "json" | "text"
-) {
-  return callLLM({
-    provider: provider as any,
-    apiKey,
-    model: model || "",
-    systemPrompt,
-    userPrompt,
-    responseFormat,
-  });
-}
+import { callLLMService } from "@/lib/llm/direct-call";
+import type { ContextProfile } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {

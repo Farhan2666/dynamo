@@ -5,18 +5,7 @@ import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-
-const SDK_CONFIG: Record<string, { sdkType: "openai" | "anthropic" | "gemini"; baseURL?: string }> = {
-  openai: { sdkType: "openai" },
-  anthropic: { sdkType: "anthropic" },
-  google: { sdkType: "gemini" },
-  mistral: { sdkType: "openai", baseURL: "https://api.mistral.ai/v1" },
-  groq: { sdkType: "openai", baseURL: "https://api.groq.com/openai/v1" },
-  together: { sdkType: "openai", baseURL: "https://api.together.xyz/v1" },
-  openrouter: { sdkType: "openai", baseURL: "https://openrouter.ai/api/v1" },
-  deepseek: { sdkType: "openai", baseURL: "https://api.deepseek.com/v1" },
-  cohere: { sdkType: "openai", baseURL: "https://api.cohere.ai/v1" },
-};
+import { PROVIDER_CONFIG, supportsJsonMode } from "@/lib/llm/provider-config";
 
 export async function callLLMService(
   provider: LLMProvider,
@@ -27,7 +16,7 @@ export async function callLLMService(
   responseFormat?: "json" | "text"
 ): Promise<LLMResponse> {
   const resolvedModel = model || DEFAULT_MODEL[provider] || "gpt-4o-mini";
-  const config = SDK_CONFIG[provider];
+  const config = PROVIDER_CONFIG[provider];
   if (!config) throw new Error(`Unknown provider: ${provider}`);
 
   let llmModel;
@@ -44,9 +33,9 @@ export async function callLLMService(
     llmModel = client.chat(resolvedModel);
   }
 
-  const supportsJsonMode = provider === "openai" || provider === "openrouter";
+  const jsonOk = supportsJsonMode(provider);
   let finalSystem = systemPrompt;
-  if (responseFormat === "json" && supportsJsonMode) {
+  if (responseFormat === "json" && jsonOk) {
     finalSystem = `${systemPrompt}\n\nRespond with valid JSON only.`;
   }
 

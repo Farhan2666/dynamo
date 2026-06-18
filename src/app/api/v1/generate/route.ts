@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateLayout } from "@/lib/agents/agent3-ui-engineer";
-import { callLLM } from "@/lib/llm/api-call";
+import { callLLMService } from "@/lib/llm/direct-call";
 import type { ContextProfile, LayoutSchema, CopyElement } from "@/types";
-
-function callLLMService(
-  provider: string,
-  apiKey: string,
-  systemPrompt: string,
-  userPrompt: string,
-  model?: string,
-  responseFormat?: "json" | "text"
-) {
-  return callLLM({
-    provider: provider as any,
-    apiKey,
-    model: model || "",
-    systemPrompt,
-    userPrompt,
-    responseFormat,
-  });
-}
 
 export async function POST(req: NextRequest) {
   try {

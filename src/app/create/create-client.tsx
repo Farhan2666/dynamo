@@ -13,10 +13,10 @@ import { ConfettiCelebration, ShareButtons } from "@/components/page-enhancement
 import type { LayoutSchema } from "@/types";
 
 const EXAMPLES = [
-  { label: "Fitness App", prompt: "Startup fintech for Gen Z — neomorphic UI, slang copy" },
-  { label: "Vegan Bakery", prompt: "Online pottery classes for seniors — warm, accessible design" },
-  { label: "SaaS MVP", prompt: "Premium coaching service for executives — minimalist, high-trust" },
-  { label: "Portfolio", prompt: "B2B SaaS for remote team management — professional, data-driven" },
+  { label: "Fintech Gen Z", prompt: "Startup fintech for Gen Z — neomorphic UI, slang copy" },
+  { label: "Pottery Classes", prompt: "Online pottery classes for seniors — warm, accessible design" },
+  { label: "Executive Coach", prompt: "Premium coaching service for executives — minimalist, high-trust" },
+  { label: "Remote Team SaaS", prompt: "B2B SaaS for remote team management — professional, data-driven" },
 ];
 
 export function CreatePageClient() {
