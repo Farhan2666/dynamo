@@ -1466,6 +1466,7 @@ export function PreviewPageClient() {
             ))}
           </div>
         </div>
+      </div>
 
       {showMutationPanel && (
         <div className="w-80 border-l border-surface-tertiary bg-surface overflow-y-auto p-4 space-y-6">
