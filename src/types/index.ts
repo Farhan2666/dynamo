@@ -44,6 +44,19 @@ export interface LayoutSchema {
   animations: AnimationSpec;
   twConfig: string[];
   wcagScore?: number;
+  seo?: SEOData;
+  analytics?: AnalyticsConfig;
+}
+
+export interface SEOData {
+  title: string;
+  description: string;
+  ogImage: string;
+}
+
+export interface AnalyticsConfig {
+  gaId: string;
+  metaPixelId: string;
 }
 
 export interface Section {

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGenerationStore, useUIStore } from "@/lib/store";
 import { Button } from "@/components/ui";
-import type { Section, MutationOptions } from "@/types";
+import type { Section, MutationOptions, SEOData } from "@/types";
 import { regenerateLayout } from "@/lib/layout-engine/mutation-engine";
 import { EditableText } from "@/components/editable-text";
 import { ImageUpload } from "@/components/image-upload";
@@ -1320,6 +1320,7 @@ export function PreviewPageClient() {
   const [mutationStrength, setMutationStrength] = useState(3);
   const [showMutationPanel, setShowMutationPanel] = useState(false);
   const [exportMode, setExportMode] = useState(false);
+  const [showPageSettings, setShowPageSettings] = useState(false);
 
   // Custom background URL handler per section
   const setSectionBackground = useCallback((sectionId: string, url: string) => {
@@ -1394,6 +1395,54 @@ export function PreviewPageClient() {
     return () => observer.disconnect();
   }, [layoutSchema]);
 
+  // SEO meta tags
+  useEffect(() => {
+    if (!layoutSchema?.seo) return;
+    const seo = layoutSchema.seo;
+    if (seo.title) document.title = seo.title;
+    const setMeta = (name: string, content: string, property = false) => {
+      let el = document.querySelector(property ? `meta[property="${name}"]` : `meta[name="${name}"]`) as HTMLMetaElement;
+      if (!el) {
+        el = document.createElement("meta");
+        if (property) el.setAttribute("property", name);
+        else el.name = name;
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
+    if (seo.description) { setMeta("description", seo.description); setMeta("og:description", seo.description, true); }
+    if (seo.title) setMeta("og:title", seo.title, true);
+    if (seo.ogImage) setMeta("og:image", seo.ogImage, true);
+  }, [layoutSchema?.seo]);
+
+  // Analytics scripts (GA + Meta Pixel)
+  useEffect(() => {
+    if (!layoutSchema?.analytics) return;
+    const { gaId, metaPixelId } = layoutSchema.analytics;
+
+    if (gaId && !document.getElementById("dynamo-ga")) {
+      const script1 = document.createElement("script");
+      script1.id = "dynamo-ga";
+      script1.async = true;
+      script1.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      document.head.appendChild(script1);
+      const script2 = document.createElement("script");
+      script2.id = "dynamo-ga-init";
+      script2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${gaId}');`;
+      document.head.appendChild(script2);
+    }
+
+    if (metaPixelId && !document.getElementById("dynamo-meta-pixel")) {
+      const script = document.createElement("script");
+      script.id = "dynamo-meta-pixel";
+      script.textContent = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixelId}');fbq('track','PageView');`;
+      document.head.appendChild(script);
+      const noscript = document.createElement("noscript");
+      noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1"/>`;
+      document.body.appendChild(noscript);
+    }
+  }, [layoutSchema?.analytics]);
+
   const currentDevice = DEVICE_SIZES.find((d) => d.id === device) || DEVICE_SIZES[2];
 
   const handleRegenerate = async (mode: string) => {
@@ -1411,6 +1460,22 @@ export function PreviewPageClient() {
     useGenerationStore.getState().setLayoutSchema(mutated);
     addToast("Layout regenerated!", "success");
   };
+
+  const updateSeo = useCallback((field: keyof SEOData, value: string) => {
+    if (!layoutSchema) return;
+    useGenerationStore.getState().setLayoutSchema({
+      ...layoutSchema,
+      seo: { ...layoutSchema.seo || { title: "", description: "", ogImage: "" }, [field]: value },
+    });
+  }, [layoutSchema]);
+
+  const updateAnalytics = useCallback((field: "gaId" | "metaPixelId", value: string) => {
+    if (!layoutSchema) return;
+    useGenerationStore.getState().setLayoutSchema({
+      ...layoutSchema,
+      analytics: { ...layoutSchema.analytics || { gaId: "", metaPixelId: "" }, [field]: value },
+    });
+  }, [layoutSchema]);
 
   if (!layoutSchema) {
     return (
@@ -1452,6 +1517,12 @@ export function PreviewPageClient() {
               className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
             >
               Mutation Panel
+            </button>
+            <button
+              onClick={() => setShowPageSettings(!showPageSettings)}
+              className="px-3 py-1.5 rounded-soft border border-surface-tertiary text-caption font-medium text-text-secondary hover:bg-surface-tertiary transition-colors"
+            >
+              Page Settings
             </button>
           </div>
         </div>
@@ -1559,6 +1630,75 @@ export function PreviewPageClient() {
               </svg>
               Generate New Page
             </button>
+          </div>
+        </div>
+      )}
+
+      {showPageSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPageSettings(false)}>
+          <div className="bg-white rounded-xl shadow-strong p-6 w-full max-w-md mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-lg">Page Settings</h3>
+              <button onClick={() => setShowPageSettings(false)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface-tertiary text-text-muted hover:text-text-primary transition-colors">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div>
+              <h4 className="text-caption font-semibold text-text-muted uppercase tracking-wider mb-3">SEO</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-caption font-medium text-text-muted mb-1 block">Meta Title</label>
+                  <input className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                    value={layoutSchema?.seo?.title || ""}
+                    onChange={(e) => updateSeo("title", e.target.value)}
+                    placeholder="My Amazing Page"
+                  />
+                </div>
+                <div>
+                  <label className="text-caption font-medium text-text-muted mb-1 block">Meta Description</label>
+                  <textarea className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary resize-none h-20"
+                    value={layoutSchema?.seo?.description || ""}
+                    onChange={(e) => updateSeo("description", e.target.value)}
+                    placeholder="Describe your page for search engines..."
+                  />
+                </div>
+                <div>
+                  <label className="text-caption font-medium text-text-muted mb-1 block">OG Image URL</label>
+                  <input className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                    value={layoutSchema?.seo?.ogImage || ""}
+                    onChange={(e) => updateSeo("ogImage", e.target.value)}
+                    placeholder="https://example.com/og-image.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <h4 className="text-caption font-semibold text-text-muted uppercase tracking-wider mb-3">Analytics</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-caption font-medium text-text-muted mb-1 block">Google Analytics ID</label>
+                  <input className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                    value={layoutSchema?.analytics?.gaId || ""}
+                    onChange={(e) => updateAnalytics("gaId", e.target.value)}
+                    placeholder="G-XXXXXXXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="text-caption font-medium text-text-muted mb-1 block">Meta Pixel ID</label>
+                  <input className="w-full border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                    value={layoutSchema?.analytics?.metaPixelId || ""}
+                    onChange={(e) => updateAnalytics("metaPixelId", e.target.value)}
+                    placeholder="1234567890"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-caption text-text-muted">Settings auto-save. Refresh page to see meta tags in action.</p>
           </div>
         </div>
       )}
