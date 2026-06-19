@@ -16,10 +16,12 @@ function parseCSV(text: string): string[][] {
 
 function loadCSV(filename: string): string[][] {
   try {
-    const _require = eval('require') as NodeRequire;
-    const fs = _require("fs") as typeof import("fs");
-    const path = _require("path") as typeof import("path");
-    const filePath = path.join(process.cwd(), "src/lib/skill-data", filename);
+    if (typeof process === "undefined" || !process.versions?.node) return [];
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs") as { existsSync: (p: string) => boolean; readFileSync: (p: string, enc: string) => string };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pathMod = require("path") as { join: (...parts: string[]) => string };
+    const filePath = pathMod.join(process.cwd(), "src/lib/skill-data", filename);
     if (!fs.existsSync(filePath)) return [];
     return parseCSV(fs.readFileSync(filePath, "utf-8"));
   } catch {

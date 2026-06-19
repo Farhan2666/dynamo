@@ -38,10 +38,13 @@ export function FormatToolbar({ containerRef, onClose }: FormatToolbarProps) {
 
   const exec = (cmd: string, val?: string) => {
     containerRef.current?.focus();
-    document.execCommand(cmd, false, val);
+    if (typeof document.queryCommandSupported === "function" && document.queryCommandSupported(cmd)) {
+      document.execCommand(cmd, false, val);
+    }
   };
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    exec("styleWithCSS", "true");
     exec("foreColor", e.target.value);
   };
 

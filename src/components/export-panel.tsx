@@ -20,6 +20,10 @@ function getSectionLabel(type: string, lang: string): string {
   return labels[type] || SECTION_LABELS.en[type] || type;
 }
 
+function esc(v: string): string {
+  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 function heroHTML(s: Section, c: ContextProfile): string {
   const h = s.content;
   const imgHtml = h.image ? `<div style="margin-top:2rem;"><img src="${h.image}" alt="Hero" style="max-width:100%;border-radius:0.75rem;box-shadow:0 8px 32px rgba(0,0,0,0.15);" /></div>` : "";
@@ -239,7 +243,16 @@ function teamHTML(s: Section): string {
 </section>`;
 }
 
+function escapeSection(s: Section): Section {
+  const content: Record<string, string> = {};
+  for (const [k, v] of Object.entries(s.content)) {
+    content[k] = esc(v);
+  }
+  return { ...s, content };
+}
+
 function sectionToHTML(s: Section, c: ContextProfile): string {
+  s = escapeSection(s);
   const lang = c.language || "en";
   switch (s.type) {
     case "hero": return heroHTML(s, c);
@@ -262,8 +275,8 @@ function sectionToHTML(s: Section, c: ContextProfile): string {
 function generateSEOHead(context: ContextProfile, layout: LayoutSchema): string {
   const lang = context.language || "en";
   const hero = layout.sections.find((s) => s.type === "hero");
-  const title = hero?.content?.headline || `${context.niche} — Landing Page`;
-  const description = hero?.content?.subheadline || `Professional landing page for ${context.niche}`;
+  const title = esc(hero?.content?.headline || `${context.niche} — Landing Page`);
+  const description = esc(hero?.content?.subheadline || `Professional landing page for ${context.niche}`);
   const faqSection = layout.sections.find((s) => s.type === "faq");
 
   const ogTags = `
@@ -281,7 +294,7 @@ function generateSEOHead(context: ContextProfile, layout: LayoutSchema): string 
     for (let i = 1; i <= 3; i++) {
       const q = faqSection.content[`q_${i}`];
       const a = faqSection.content[`a_${i}`];
-      if (q && a) faqItems.push({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } });
+      if (q && a) faqItems.push({ "@type": "Question", name: esc(q), acceptedAnswer: { "@type": "Answer", text: esc(a) } });
     }
     if (faqItems.length > 0) {
       jsonLd = `\n  <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqItems })}</script>`;
@@ -345,8 +358,8 @@ function generateTailwind(data: ExportPanelProps): string {
       : "";
     return `<section className="${s.twClasses.join(" ")}" ${bg}>
   <div className="max-w-6xl mx-auto px-6">
-    <h2 className="font-heading text-heading font-bold">${h.title || s.type}</h2>
-    <p className="text-body text-text-secondary">${h.subtitle || ""}</p>
+    <h2 className="font-heading text-heading font-bold">${esc(h.title || s.type)}</h2>
+    <p className="text-body text-text-secondary">${esc(h.subtitle || "")}</p>
   </div>
 </section>`;
   }).join("\n\n");
