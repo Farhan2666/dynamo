@@ -193,6 +193,162 @@ export function getReasoningBlock(limit = 101): string {
   return REASONING_CACHE.value;
 }
 
+function tokenize(text: string): string[] {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .split(/\s+/)
+    .filter(t => t.length > 2)
+    .map(t => t.replace(/[_-]/g, ""));
+}
+
+function scoreMatch(text: string, keywords: string[]): number {
+  const tokens = tokenize(text);
+  const uniqueTokens = Array.from(new Set(tokens));
+  let score = 0;
+  for (const kw of keywords) {
+    const kwTokens = tokenize(kw);
+    for (const kt of kwTokens) {
+      if (uniqueTokens.indexOf(kt) !== -1) score += 1;
+      else if (uniqueTokens.some((t: string) => t.indexOf(kt) !== -1 || kt.indexOf(t) !== -1)) score += 0.5;
+    }
+  }
+  return score;
+}
+
+function isGenericCategory(cat: string): boolean {
+  const generic = ["general", "saas", "app", "software", "platform", "service", "online", "digital", "web", "other"];
+  const lower = cat.toLowerCase().replace(/[()]/g, "");
+  return generic.some(g => lower === g || lower.startsWith(g + " ") || lower.endsWith(" " + g));
+}
+
+function expandKeywords(keywords: string[]): string[] {
+  const map: Record<string, string[]> = {
+    food: ["restaurant", "bakery", "cafe", "coffee", "kitchen", "culinary", "grocery", "organic", "vegan", "meal", "dining", "catering", "beverage", "brewery", "pizza", "sushi", "burger"],
+    health: ["medical", "doctor", "clinic", "hospital", "fitness", "wellness", "yoga", "gym", "therapy", "mental", "nutrition", "diet", "pharma", "drug", "healthcare", "medicine", "nursing", "care"],
+    fashion: ["clothing", "apparel", "wear", "shoe", "accessory", "jewelry", "watch", "bag", "luxury", "boutique", "style", "outfit", "trend"],
+    tech: ["software", "app", "saas", "startup", "digital", "platform", "cloud", "api", "dev", "code", "programming", "it", "cyber", "data", "analytics", "ai", "ml", "automation", "blockchain"],
+    finance: ["bank", "fintech", "invest", "money", "pay", "insurance", "accounting", "tax", "loan", "credit", "crypto", "trading", "wealth", "budget"],
+    education: ["course", "learn", "class", "training", "school", "university", "academy", "tutorial", "workshop", "coach", "mentor", "student", "teacher", "online course"],
+    realestate: ["property", "house", "apartment", "rent", "mortgage", "agent", "building", "construction", "interior", "architecture", "home", "land"],
+    travel: ["hotel", "tour", "flight", "vacation", "trip", "destination", "airbnb", "hostel", "resort", "adventure", "booking", "journey"],
+    creative: ["design", "art", "photo", "video", "music", "portfolio", "creative", "studio", "agency", "brand", "marketing", "content", "media", "social media"],
+    legal: ["lawyer", "attorney", "court", "legal", "compliance", "contract", "rights", "patent", "trademark"],
+    automotive: ["car", "auto", "vehicle", "motor", "truck", "dealership", "garage", "mechanic", "repair", "bike", "electric vehicle"],
+  };
+  const result = [...keywords];
+  for (const kw of keywords) {
+    for (const [category, words] of Object.entries(map)) {
+      if (words.some(w => kw.toLowerCase().includes(w) || w.includes(kw.toLowerCase()))) {
+        result.push(category, ...words);
+      }
+    }
+  }
+  return Array.from(new Set(result));
+}
+
+export interface CuratedPick {
+  index: number;
+  name: string;
+  details: string;
+  matchScore: number;
+  reason: string;
+}
+
+export function getCuratedStyles(niche: string, tags: string[] = [], topN = 5): CuratedPick[] {
+  const styles = loadStyles();
+  const keywords = expandKeywords([niche, ...tags]);
+  const scored: CuratedPick[] = styles.map((s, i) => {
+    const name = s["Style Category"] || s.Style || "Unknown";
+    const haystack = `${name} ${s.Keywords} ${s["Best For"]} ${s["Do Not Use For"] || ""} ${s.Type}`;
+    const score = scoreMatch(haystack, keywords);
+    return {
+      index: i + 1,
+      name,
+      details: s.Keywords.split(",").slice(0, 5).map(k => k.trim()).join(", "),
+      matchScore: score,
+      reason: score > 0 ? `matches "${name}" keywords` : "general purpose",
+    };
+  });
+  return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+}
+
+export function getCuratedColors(niche: string, tags: string[] = [], topN = 3): CuratedPick[] {
+  const colors = loadColors();
+  const keywords = expandKeywords([niche, ...tags]);
+  const scored: CuratedPick[] = colors.map((c, i) => {
+    const pt = c["Product Type"];
+    const score = scoreMatch(pt, keywords);
+    const generic = isGenericCategory(pt);
+    return {
+      index: i + 1,
+      name: pt,
+      details: `P=${c["Primary (Hex)"]} S=${c["Secondary (Hex)"]} C=${c["CTA (Hex)"]} Bg=${c["Background (Hex)"]} T=${c["Text (Hex)"]}`,
+      matchScore: generic ? score - 1 : score,
+      reason: generic ? "general category" : `industry: ${pt}`,
+    };
+  });
+  return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+}
+
+export function getCuratedFonts(niche: string, tags: string[] = [], topN = 3): CuratedPick[] {
+  const fonts = loadTypography();
+  const keywords = expandKeywords([niche, ...tags]);
+  const scored: CuratedPick[] = fonts.map((f, i) => {
+    const haystack = `${f["Font Pairing Name"]} ${f.Category} ${f["Best For"]}`;
+    const score = scoreMatch(haystack, keywords);
+    return {
+      index: i + 1,
+      name: f["Font Pairing Name"],
+      details: `H="${f["Heading Font"]}" B="${f["Body Font"]}"`,
+      matchScore: score,
+      reason: `mood/category: ${f.Category}`,
+    };
+  });
+  return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+}
+
+export function getCuratedProducts(niche: string, tags: string[] = [], topN = 3): CuratedPick[] {
+  const products = loadProducts();
+  const keywords = expandKeywords([niche, ...tags]);
+  const scored: CuratedPick[] = products.map((p, i) => {
+    const haystack = `${p["Product Type"]} ${p.Keywords} ${p["Primary Style Recommendation"]} ${p["Landing Page Pattern"]}`;
+    const score = scoreMatch(haystack, keywords);
+    const generic = isGenericCategory(p["Product Type"]);
+    return {
+      index: i + 1,
+      name: p["Product Type"],
+      details: `style="${p["Primary Style Recommendation"]}" pattern="${p["Landing Page Pattern"]}"`,
+      matchScore: generic ? score - 1 : score,
+      reason: generic ? "general" : `industry match for "${p["Product Type"]}"`,
+    };
+  });
+  return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+}
+
+export function getCuratedReasoning(niche: string, tags: string[] = [], topN = 5): CuratedPick[] {
+  const rules = loadReasoning();
+  const keywords = expandKeywords([niche, ...tags]);
+  const scored: CuratedPick[] = rules.map((r, i) => {
+    const haystack = `${r.UI_Category} ${r.Recommended_Pattern} ${r.Decision_Rules} ${r.Anti_Patterns}`;
+    const score = scoreMatch(haystack, keywords);
+    return {
+      index: i + 1,
+      name: r.UI_Category,
+      details: `pattern=${r.Recommended_Pattern} | anti=${r.Anti_Patterns}`,
+      matchScore: score,
+      reason: score > 0 ? "keyword match" : "general principle",
+    };
+  });
+  return scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+}
+
+export function formatCuratedPicks(picks: CuratedPick[], label: string): string {
+  if (picks.length === 0) return `[${label}: none matched]`;
+  return `${label}:\n` + picks.map((p, i) =>
+    `${i + 1}. ${p.name} — ${p.details} (${p.reason})`
+  ).join("\n");
+}
+
 export function getUXGuidelinesBlock(): string {
   if (!isServer) return "";
   const guidelines = loadUXGuidelines();

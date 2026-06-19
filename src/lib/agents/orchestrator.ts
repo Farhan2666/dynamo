@@ -7,7 +7,7 @@ import { runResearchAgent, applyResearchToPrompt } from "./agent4-researcher";
 import { runSelfReview, type ReviewReport } from "./agent5-reviewer";
 import { detectLanguage } from "@/lib/utils/language";
 import { extractJsonFromResponse } from "@/lib/utils/json";
-import { getProductsBlock, getStylesBlock, getColorsBlock, getTypographyBlock, getReasoningBlock, getAntiSlopRules } from "@/lib/skill-loader";
+import { getCuratedStyles, getCuratedColors, getCuratedFonts, getCuratedProducts, getCuratedReasoning, formatCuratedPicks, getAntiSlopRules } from "@/lib/skill-loader";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -20,48 +20,39 @@ async function llmAnalyzeContext(
   try {
     const lang = detectLanguage(prompt);
     const skillInject = settings?.skillInject ?? true;
-    const productsRef = skillInject ? getProductsBlock() : "";
-    const colorsRef = skillInject ? getColorsBlock() : "";
-    const fontsRef = skillInject ? getTypographyBlock() : "";
-    const stylesRef = skillInject ? getStylesBlock() : "";
+    const curatedProducts = skillInject ? formatCuratedPicks(getCuratedProducts(prompt, []), "INDUSTRY MATCHES") : "";
+    const curatedColors = skillInject ? formatCuratedPicks(getCuratedColors(prompt, []), "RECOMMENDED COLOR PALETTES") : "";
+    const curatedFonts = skillInject ? formatCuratedPicks(getCuratedFonts(prompt, []), "RECOMMENDED FONT PAIRINGS") : "";
+    const curatedStyles = skillInject ? formatCuratedPicks(getCuratedStyles(prompt, []), "RECOMMENDED UI STYLES") : "";
 
     const skillBlock = skillInject ? `
 
-REFERENSI 97 INDUSTRIES (masing-masing punya style, color palette, pattern rekomendasi):
-${productsRef}
-
-REFERENSI 97 COLOR PALETTES (hex codes per industri):
-${colorsRef}
-
-REFERENSI 58 FONT PAIRINGS (Google Fonts):
-${fontsRef}
-
-REFERENSI 68 UI STYLES:
-${stylesRef}
+=== CURATED DESIGN RECOMMENDATIONS FOR THIS BUSINESS ===
+${curatedStyles}
+${curatedColors}
+${curatedFonts}
+${curatedProducts}
 ` : "";
 
     const system = `You are a market context analyzer. Output JSON only.${skillBlock}
-
-WAJIB: Pilih warna dari daftar COLOR PALETTES di atas berdasarkan industri. Tulis nomor # palet yang dipilih.
-WAJIB: Pilih font dari daftar FONT PAIRINGS di atas. Tulis nomor # font yang dipilih.
-WAJIB: Pilih style dari daftar UI STYLES di atas. Tulis nomor # style yang dipilih.
-niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce").
 
 Output ONLY valid JSON:
 {
   "niche": "specific business category",
   "industryTags": ["3-5 keywords"],
-  "primaryColor": "hex from chosen palette",
+  "primaryColor": "hex from recommended palette above",
   "secondaryColor": "hex",
   "accentColor": "hex",
-  "primaryFont": "heading font from chosen pairing",
-  "secondaryFont": "body font from chosen pairing",
+  "primaryFont": "heading font from recommended pairings above",
+  "secondaryFont": "body font",
   "layoutPriority": ["hero", "features", "cta"],
   "audiencePersona": "target description",
   "moodProfile": "trust|professional|calm|growth|energetic|playful|warm|confident|balanced|creative|stable|compassionate",
   "language": "${lang}"
 }
 
+niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce").
+WAJIB pilih dari rekomendasi di atas.
 ONLY valid JSON. No markdown.`;
 
     const result = await callLLM({
@@ -144,75 +135,41 @@ async function llmGenerateLayout(
       : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
     const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
     const skillInject = settings?.skillInject ?? true;
-    const stylesRef = skillInject ? getStylesBlock() : "";
-    const colorsRef = skillInject ? getColorsBlock() : "";
-    const fontsRef = skillInject ? getTypographyBlock() : "";
-    const reasoningRef = skillInject ? getReasoningBlock() : "";
+    const niche = context.niche;
+    const tags = context.industryTags || [];
+    const curatedStyles = skillInject ? formatCuratedPicks(getCuratedStyles(niche, tags), "RECOMMENDED STYLES") : "";
+    const curatedColors = skillInject ? formatCuratedPicks(getCuratedColors(niche, tags), "RECOMMENDED COLOR PALETTES") : "";
+    const curatedFonts = skillInject ? formatCuratedPicks(getCuratedFonts(niche, tags), "RECOMMENDED FONTS") : "";
+    const curatedReasoning = skillInject ? formatCuratedPicks(getCuratedReasoning(niche, tags), "REASONING RULES") : "";
     const antiSlopRef = skillInject ? getAntiSlopRules() : "";
 
     const skillBlock = skillInject ? `
 
-REFERENSI 68 UI STYLES (pilih yang paling cocok untuk ${context.niche}):
-${stylesRef}
-
-REFERENSI 97 COLOR PALETTES (per industri):
-${colorsRef}
-
-REFERENSI 58 FONT PAIRINGS:
-${fontsRef}
-
-REFERENSI 101 DESIGN REASONING RULES (decision rules + anti-patterns per industri):
-${reasoningRef}
-
-${antiSlopRef}
+=== CURATED DESIGN DATA FOR ${niche.toUpperCase()} ===
+${curatedStyles}
+${curatedColors}
+${curatedFonts}
+${curatedReasoning}
 ` : "";
 
-    const system = `You are a world-class UI engineer for ${context.niche}. Design a landing page for ${context.audiencePersona}. Mood: ${context.moodProfile}.
+    const system = `You are a UI engineer for ${niche}. Design a landing page for ${context.audiencePersona} (mood: ${context.moodProfile}).
 ${langNote}${skillBlock}
 
-DEFINE DESIGN SYSTEM FIRST:
-- Color roles: primary, secondary, accent, surface, text, border with specific hexes
-- Typography: choose from font list # above; cite your choice
-- Spacing scale, border radius, shadow system
-Then generate sections WITHIN these constraints.
+WAJIB: Pilih warna dari "RECOMMENDED COLOR PALETTES" di atas. Jangan #6366F1.
+WAJIB: Pilih font dari "RECOMMENDED FONTS" di atas. Jangan Inter sebagai body.
+WAJIB: Layout asimetris — broken grid, staggered, diagonal clip.
 
-INTENTIONAL ASYMMETRY (MANDATORY):
-- Broken grids, staggered cards, diagonal clip-paths, varying heights
-- Content bleeding past containers
-- Page MUST NOT look like a symmetrical AI template
+${antiSlopRef}
 
-JSON FORMAT:
-{"layout":"centered|asymmetric|split|full-width|grid","sections":[{"type":"hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team","order":1,"twClasses":["py-20 md:py-32"],"spacing":"compact|comfortable|spacious|breathing","content":{}}],"animations":{"type":"fade|slide|bounce|scale","intensity":1-5,"springPhysics":bool},"twConfig":[""],"designSystem":{}}
+JSON: {"layout":"centered|asymmetric|split|full-width|grid","sections":[{"type":"hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team","order":1,"content":{},"twClasses":[],"spacing":"compact|comfortable|spacious|breathing"}],"animations":{},"twConfig":[],"designSystem":{}}
 
-CONTENT KEYS per section type:
-hero: headline,subheadline,cta,badge
-features: title,subtitle,feature_1_title,feature_1_desc,feature_2_title,feature_2_desc,feature_3_title,feature_3_desc
-testimonials: title,subtitle,quote_1,name_1,role_1,company_1,quote_2,name_2,role_2,company_2
-pricing: title,subtitle,plan_1_name,plan_1_price,plan_1_feat_1..4,plan_1_cta,plan_2_name,plan_2_price,plan_2_feat_1..4,plan_2_cta,plan_3_name,plan_3_price,plan_3_feat_1..4,plan_3_cta
-cta: headline,subheadline,button
-faq: title,subtitle,q_1,a_1,q_2,a_2,q_3,a_3
-stats: title,stat_1_value,stat_1_label,stat_2_value,stat_2_label,stat_3_value,stat_3_label,stat_4_value,stat_4_label
-gallery: title,subtitle,category_1..4,tag_1..6
-logos: title,logo_1..logo_6
-contact: title,subtitle,email,phone,address,hours,cta
-comparison: title,subtitle,row_1..6,our_val_1..6,their_val_1..6
-timeline: title,subtitle,year_1..5,event_1..5,desc_1..5
-team: title,subtitle,name_1..4,role_1..4,bio_1..4
+Content keys — hero=headline,subheadline,cta,badge | features=title,subtitle,feature_1_title..3,feature_1_desc..3 | testimonials=title,subtitle,quote_1,name_1,role_1,company_1,quote_2,name_2,role_2,company_2 | pricing=title,subtitle,plan_1_name,plan_1_price,plan_1_feat_1..4,plan_1_cta,plan_2_name,plan_2_price,plan_2_feat_1..4,plan_2_cta,plan_3_name,plan_3_price,plan_3_feat_1..4,plan_3_cta | cta=headline,subheadline,button | faq=title,subtitle,q_1,a_1,q_2,a_2,q_3,a_3 | stats=title,stat_1_value,stat_1_label..4 | gallery=title,subtitle,category_1..4 | logos=title,logo_1..6 | contact=title,subtitle,email,phone,address,hours,cta | comparison=title,subtitle,row_1..6,our_val_1..6,their_val_1..6 | timeline=title,subtitle,year_1..5,event_1..5 | team=title,subtitle,name_1..4,role_1..4
 
 RULES:
-- 4-8 sections
-- Content MUST be specific to ${context.niche}, not generic
-- Use vocabulary from ${context.industryTags.join(", ")}
-
-FINAL CHECKLIST — WAJIB dipenuhi sebelum output:
-⬜ 1. Warna: Pilih dari daftar COLOR PALETTES di atas. Jangan pakai #6366F1 (purple AI slop).
-⬜ 2. Font: Pilih dari daftar FONT PAIRINGS di atas. Jangan pakai Inter sebagai body font.
-⬜ 3. CTA: Jangan "Get Started". Pakai CTA spesifik untuk ${context.niche}.
-⬜ 4. Layout: Harus asimetris. Jangan grid 3 kolom simetris.
-⬜ 5. No buzzwords: jangan "cutting-edge", "next-gen", "revolutionary", "seamless".
-⬜ 6. No purple/pink gradient sebagai warna utama.
-⬜ 7. No glassmorphism asal.
-⬜ 8. Semua field content harus terisi, jangan ada yang kosong.
+- 4-8 sections, content specific to ${niche}
+- CTA jangan "Get Started" — pakai spesifik
+- No buzzwords: cutting-edge, next-gen, revolutionary, seamless
+- Semua field content WAJIB terisi
 
 ONLY valid JSON. No markdown.`;
 
