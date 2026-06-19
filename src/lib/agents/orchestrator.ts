@@ -40,26 +40,29 @@ REFERENSI 68 UI STYLES:
 ${stylesRef}
 ` : "";
 
-    const system = `You are a market context analyzer with access to a database of 97 industry-proven design profiles. Analyze the business description and match it to the best design profile.${skillBlock}
+    const system = `You are a market context analyzer. Output JSON only.${skillBlock}
+
+WAJIB: Pilih warna dari daftar COLOR PALETTES di atas berdasarkan industri. Tulis nomor # palet yang dipilih.
+WAJIB: Pilih font dari daftar FONT PAIRINGS di atas. Tulis nomor # font yang dipilih.
+WAJIB: Pilih style dari daftar UI STYLES di atas. Tulis nomor # style yang dipilih.
+niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce").
 
 Output ONLY valid JSON:
 {
-  "niche": "exact business category (be specific, not just 'saas' or 'tech')",
-  "industryTags": ["3-5 specific keywords about this business"],
-  "primaryColor": "hex color based on brand psychology for this industry",
-  "secondaryColor": "hex secondary color",
-  "accentColor": "hex accent color (often complementary to primary, for small highlights)",
-  "primaryFont": "heading font (choose from font pairing references above)",
-  "secondaryFont": "body font (choose from font pairing references above)",
-  "layoutPriority": ["hero", "features", "testimonials", "cta"],
-  "audiencePersona": "specific target audience description",
-  "moodProfile": "one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced, creative, stable, compassionate",
+  "niche": "specific business category",
+  "industryTags": ["3-5 keywords"],
+  "primaryColor": "hex from chosen palette",
+  "secondaryColor": "hex",
+  "accentColor": "hex",
+  "primaryFont": "heading font from chosen pairing",
+  "secondaryFont": "body font from chosen pairing",
+  "layoutPriority": ["hero", "features", "cta"],
+  "audiencePersona": "target description",
+  "moodProfile": "trust|professional|calm|growth|energetic|playful|warm|confident|balanced|creative|stable|compassionate",
   "language": "${lang}"
 }
 
-The MOST IMPORTANT rule: niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce"; "vegan bakery" not "food"). Use terms from the user's prompt directly.
-Gunakan referensi di atas untuk memilih warna, font, dan style yang PALING COCOK.
-ONLY valid JSON. No markdown. No explanations.`;
+ONLY valid JSON. No markdown.`;
 
     const result = await callLLM({
       provider: settings.llmProvider,
@@ -164,75 +167,52 @@ ${reasoningRef}
 ${antiSlopRef}
 ` : "";
 
-    const system = `You are a world-class UI engineer who designs like a human art director, not an AI template machine. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
+    const system = `You are a world-class UI engineer for ${context.niche}. Design a landing page for ${context.audiencePersona}. Mood: ${context.moodProfile}.
 ${langNote}${skillBlock}
 
-DESIGN SYSTEM-FIRST APPROACH:
-Before writing any UI code, define a complete design system:
-- Color roles: primary, secondary, accent, surface, text, border with specific hex values
-- Typography: display font (expressive), heading font, body font with specific sizes/weights
-- Spacing: section padding, container max-width, grid gaps, stack gaps
-- Border radius scale
-- Shadow system
+DEFINE DESIGN SYSTEM FIRST:
+- Color roles: primary, secondary, accent, surface, text, border with specific hexes
+- Typography: choose from font list # above; cite your choice
+- Spacing scale, border radius, shadow system
+Then generate sections WITHIN these constraints.
 
-Then generate the layout WITHIN these constraints.
+INTENTIONAL ASYMMETRY (MANDATORY):
+- Broken grids, staggered cards, diagonal clip-paths, varying heights
+- Content bleeding past containers
+- Page MUST NOT look like a symmetrical AI template
 
-INTENTIONAL ASYMMETRY:
-This page MUST NOT look AI-generated (too symmetrical). Apply:
-- Broken grids, overlapping sections, staggered cards
-- Clipped corners or diagonal clip-paths
-- Odd-numbered grids, floating CTA with negative margin
-- Varying card heights, content bleeding past containers
+JSON FORMAT:
+{"layout":"centered|asymmetric|split|full-width|grid","sections":[{"type":"hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team","order":1,"twClasses":["py-20 md:py-32"],"spacing":"compact|comfortable|spacious|breathing","content":{}}],"animations":{"type":"fade|slide|bounce|scale","intensity":1-5,"springPhysics":bool},"twConfig":[""],"designSystem":{}}
 
-Output JSON with:
-- layout: centered|asymmetric|split|full-width|grid|broken-grid|diagonal|bleed
-- sections: array of {id, type, order, content (ALL fields filled), twClasses, spacing}
-- animations: {type, intensity 1-5, springPhysics}
-- twConfig: string array with design system variables
-- designSystem (object): the complete design system
-
-{
-  "layout": "centered|asymmetric|split|full-width|grid (pick best for ${context.niche})",
-  "sections": [
-    {
-      "type": "hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team",
-      "order": 1,
-      "twClasses": ["tailwind classes like py-20 md:py-32"],
-      "spacing": "compact|comfortable|spacious|breathing",
-      "content": {
-        "headline": "specific headline for this section",
-        "subheadline": "supporting description"
-      }
-    }
-  ],
-  "animations": {
-    "type": "fade|slide|bounce|scale",
-    "intensity": 1-5,
-    "springPhysics": true or false
-  },
-  "twConfig": ["font-heading: ${context.primaryFont}", "font-body: ${context.secondaryFont}"]
-}
+CONTENT KEYS per section type:
+hero: headline,subheadline,cta,badge
+features: title,subtitle,feature_1_title,feature_1_desc,feature_2_title,feature_2_desc,feature_3_title,feature_3_desc
+testimonials: title,subtitle,quote_1,name_1,role_1,company_1,quote_2,name_2,role_2,company_2
+pricing: title,subtitle,plan_1_name,plan_1_price,plan_1_feat_1..4,plan_1_cta,plan_2_name,plan_2_price,plan_2_feat_1..4,plan_2_cta,plan_3_name,plan_3_price,plan_3_feat_1..4,plan_3_cta
+cta: headline,subheadline,button
+faq: title,subtitle,q_1,a_1,q_2,a_2,q_3,a_3
+stats: title,stat_1_value,stat_1_label,stat_2_value,stat_2_label,stat_3_value,stat_3_label,stat_4_value,stat_4_label
+gallery: title,subtitle,category_1..4,tag_1..6
+logos: title,logo_1..logo_6
+contact: title,subtitle,email,phone,address,hours,cta
+comparison: title,subtitle,row_1..6,our_val_1..6,their_val_1..6
+timeline: title,subtitle,year_1..5,event_1..5,desc_1..5
+team: title,subtitle,name_1..4,role_1..4,bio_1..4
 
 RULES:
-- Pick 4-8 sections that tell the best story for "${context.niche}"
-- CRITICAL: Generate ORIGINAL, niche-specific content for each section
-- Use vocabulary specific to ${context.niche} industry
+- 4-8 sections
+- Content MUST be specific to ${context.niche}, not generic
+- Use vocabulary from ${context.industryTags.join(", ")}
 
-EXACT content keys per section type:
-
-hero: {"headline","subheadline","cta","badge?"}
-features: {"title","subtitle","feature_1_title","feature_1_desc","feature_2_title","feature_2_desc","feature_3_title","feature_3_desc"}
-testimonials: {"title","subtitle","quote_1","name_1","role_1","company_1","quote_2","name_2","role_2","company_2"}
-pricing: {"title","subtitle","plan_1_name","plan_1_price","plan_1_desc","plan_1_feat_1..4","plan_1_cta","plan_2_name","plan_2_price","plan_2_feat_1..4","plan_2_cta","plan_3_name","plan_3_price","plan_3_feat_1..4","plan_3_cta"}
-cta: {"headline","subheadline","button"}
-faq: {"title","subtitle","q_1","a_1","q_2","a_2","q_3","a_3"}
-stats: {"title","stat_1_value","stat_1_label","stat_2_value","stat_2_label","stat_3_value","stat_3_label","stat_4_value","stat_4_label"}
-gallery: {"title","subtitle","category_1..4","tag_1..6"}
-logos: {"title","logo_1..logo_6"}
-contact: {"title","subtitle","email","phone","address","hours","cta"}
-comparison: {"title","subtitle","row_1..6","our_val_1..6","their_val_1..6"}
-timeline: {"title","subtitle","year_1..5","event_1..5","desc_1..5"}
-team: {"title","subtitle","name_1..4","role_1..4","bio_1..4"}
+FINAL CHECKLIST — WAJIB dipenuhi sebelum output:
+⬜ 1. Warna: Pilih dari daftar COLOR PALETTES di atas. Jangan pakai #6366F1 (purple AI slop).
+⬜ 2. Font: Pilih dari daftar FONT PAIRINGS di atas. Jangan pakai Inter sebagai body font.
+⬜ 3. CTA: Jangan "Get Started". Pakai CTA spesifik untuk ${context.niche}.
+⬜ 4. Layout: Harus asimetris. Jangan grid 3 kolom simetris.
+⬜ 5. No buzzwords: jangan "cutting-edge", "next-gen", "revolutionary", "seamless".
+⬜ 6. No purple/pink gradient sebagai warna utama.
+⬜ 7. No glassmorphism asal.
+⬜ 8. Semua field content harus terisi, jangan ada yang kosong.
 
 ONLY valid JSON. No markdown.`;
 

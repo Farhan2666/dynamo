@@ -49,33 +49,22 @@ ${langNote}
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
 Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.${skillBlock}
 
-CRITICAL: This page MUST NOT look AI-generated. Avoid generic buzzwords and symmetrical template patterns. Write like a real brand.
+FINAL CHECKLIST — WAJIB dipenuhi sebelum output:
+⬜ 1. Warna: Pilih dari daftar COLOR di atas. Jangan #6366F1 (purple AI slop).
+⬜ 2. Font: Pilih dari daftar FONT di atas. Jangan Inter sbg body font.
+⬜ 3. CTA: Jangan "Get Started". Pakai spesifik utk ${context.niche}.
+⬜ 4. Layout asimetris. Jangan grid 3 kolom simetris.
+⬜ 5. No buzzwords: cutting-edge, next-gen, revolutionary, seamless.
+⬜ 6. No purple/pink gradient.
+⬜ 7. Semua field content HARUS terisi.
+⬜ 8. Gunakan vocabulary spesifik: ${context.industryTags?.join(", ") || context.niche}.
 
-Output JSON with:
-- layout (string): centered|asymmetric|split|full-width|grid
-- sections (array): each section has: id, type, order, content (object with ALL fields filled), twClasses (string array), spacing (compact|comfortable|spacious|breathing)
-- animations (object with type fade|slide|bounce|scale, intensity 1-5, springPhysics boolean)
-- twConfig (string array)
+Output JSON:
+{"layout":"centered|asymmetric|split|full-width|grid","sections":[{"id":"","type":"hero|features|testimonials|pricing|cta|faq|stats|gallery|logos|contact|comparison|timeline|team","order":1,"content":{},"twClasses":[],"spacing":"comfortable"}],"animations":{},"twConfig":[]}
 
-For section types, populate ALL content fields:
-- hero: headline, subheadline, cta, badge
-- features: title, subtitle, feature_1_title, feature_1_desc, feature_2_title, feature_2_desc, feature_3_title, feature_3_desc
-- testimonials: title, subtitle, quote_1, name_1, role_1, company_1, quote_2, name_2, role_2, company_2
-- pricing: title, subtitle, plan_1_name, plan_1_desc, plan_1_price, plan_1_feat_1..4, plan_1_cta, plan_2_name, plan_2_desc, plan_2_price, plan_2_feat_1..4, plan_2_cta, plan_3_name, plan_3_desc, plan_3_price, plan_3_feat_1..4, plan_3_cta
-- cta: headline, subheadline, button
-- faq: title, subtitle, q_1, a_1, q_2, a_2, q_3, a_3
-- stats: title, stat_1_value, stat_1_label, stat_2_value, stat_2_label, stat_3_value, stat_3_label, stat_4_value, stat_4_label
-- gallery: title, subtitle, category_1..4, tag_1..6
-- logos: title, logo_1..logo_6
-- contact: title, subtitle, email, phone, address, hours, cta
-- comparison: title, subtitle, row_1..6, our_val_1..6, their_val_1..6
-- timeline: title, subtitle, year_1..5, event_1..5, desc_1..5
-- team: title, subtitle, name_1..4, role_1..4, bio_1..4
+Content keys: hero=headline,subheadline,cta,badge | features=title,subtitle,feature_1_title,feature_1_desc,feature_2_title,feature_2_desc,feature_3_title,feature_3_desc | testimonials=title,subtitle,quote_1,name_1,role_1,company_1,quote_2,name_2,role_2,company_2 | pricing=title,subtitle,plan_1_name,plan_1_price,plan_1_feat_1..4,plan_1_cta,plan_2_name,plan_2_price,plan_2_feat_1..4,plan_2_cta,plan_3_name,plan_3_price,plan_3_feat_1..4,plan_3_cta | cta=headline,subheadline,button | faq=title,subtitle,q_1,a_1,q_2,a_2,q_3,a_3 | stats=title,stat_1_value,stat_1_label..4 | gallery=title,subtitle,category_1..4,tag_1..6 | logos=title,logo_1..6 | contact=title,subtitle,email,phone,address,hours,cta | comparison=title,subtitle,row_1..6,our_val_1..6,their_val_1..6 | timeline=title,subtitle,year_1..5,event_1..5,desc_1..5 | team=title,subtitle,name_1..4,role_1..4,bio_1..4
 
-Make content creative, specific to ${context.niche}, and persuasive.
-Avoid: "cutting-edge", "next-gen", "revolutionary", "game-changer", "state-of-the-art".
-Use specific metrics, concrete details, and original phrasing.
-Return ONLY valid JSON.`;
+ONLY valid JSON. No markdown.`;
 
         const langInstruction = lang === "id"
           ? "\n\nWAJIB: Semua teks di landing page HARUS dalam BAHASA INDONESIA — headline, subheadline, judul section, deskripsi, CTA, FAQ, testimonial, semua. Jangan ada satu kata pun bahasa Inggris."

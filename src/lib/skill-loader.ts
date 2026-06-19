@@ -131,57 +131,63 @@ const FONTS_CACHE = { loaded: false, value: "" };
 const PRODUCTS_CACHE = { loaded: false, value: "" };
 const REASONING_CACHE = { loaded: false, value: "" };
 
-export function getStylesBlock(): string {
+export function getStylesBlock(limit = 67): string {
   if (!isServer) return "";
-  if (STYLES_CACHE.loaded) return STYLES_CACHE.value;
+  const key = `sty_${limit}`;
+  if (STYLES_CACHE.value && STYLES_CACHE.value.startsWith(key)) return STYLES_CACHE.value;
   const styles = loadStyles();
-  STYLES_CACHE.value = styles.slice(0, 68).map((s, i) => {
+  STYLES_CACHE.value = key + "\n" + styles.slice(0, limit).map((s, i) => {
     const name = s["Style Category"] || s.Style || "Unknown";
-    return `${i + 1}. ${name} — ${s.Keywords.slice(0, 120)} | Best: ${s["Best For"].slice(0, 80)} | CSS: ${s["CSS/Technical Keywords"].slice(0, 120)}`;
+    const kw = s.Keywords.split(",").slice(0, 5).map(k => k.trim()).join(", ");
+    return `${i + 1}. ${name}: ${kw}`;
   }).join("\n");
   STYLES_CACHE.loaded = true;
   return STYLES_CACHE.value;
 }
 
-export function getColorsBlock(): string {
+export function getColorsBlock(limit = 97): string {
   if (!isServer) return "";
-  if (COLORS_CACHE.loaded) return COLORS_CACHE.value;
+  const key = `col_${limit}`;
+  if (COLORS_CACHE.value && COLORS_CACHE.value.startsWith(key)) return COLORS_CACHE.value;
   const colors = loadColors();
-  COLORS_CACHE.value = colors.slice(0, 97).map((c) =>
-    `${c["Product Type"]}: primary=${c["Primary (Hex)"]}, secondary=${c["Secondary (Hex)"]}, cta=${c["CTA (Hex)"]}, bg=${c["Background (Hex)"]}, text=${c["Text (Hex)"]}`
+  COLORS_CACHE.value = key + "\n" + colors.slice(0, limit).map((c) =>
+    `[${c["Product Type"]}] P=${c["Primary (Hex)"]} S=${c["Secondary (Hex)"]} C=${c["CTA (Hex)"]} Bg=${c["Background (Hex)"]} T=${c["Text (Hex)"]}`
   ).join("\n");
   COLORS_CACHE.loaded = true;
   return COLORS_CACHE.value;
 }
 
-export function getTypographyBlock(): string {
+export function getTypographyBlock(limit = 58): string {
   if (!isServer) return "";
-  if (FONTS_CACHE.loaded) return FONTS_CACHE.value;
+  const key = `fnt_${limit}`;
+  if (FONTS_CACHE.value && FONTS_CACHE.value.startsWith(key)) return FONTS_CACHE.value;
   const fonts = loadTypography();
-  FONTS_CACHE.value = fonts.slice(0, 58).map((f) =>
-    `${f["Font Pairing Name"]} (${f.Category}): heading=${f["Heading Font"]}, body=${f["Body Font"]} | Best: ${f["Best For"].slice(0, 60)}`
+  FONTS_CACHE.value = key + "\n" + fonts.slice(0, limit).map((f) =>
+    `#${fonts.indexOf(f) + 1} ${f["Font Pairing Name"]}: H="${f["Heading Font"]}" B="${f["Body Font"]}" — ${f["Best For"].slice(0, 40)}`
   ).join("\n");
   FONTS_CACHE.loaded = true;
   return FONTS_CACHE.value;
 }
 
-export function getProductsBlock(): string {
+export function getProductsBlock(limit = 97): string {
   if (!isServer) return "";
-  if (PRODUCTS_CACHE.loaded) return PRODUCTS_CACHE.value;
+  const key = `prd_${limit}`;
+  if (PRODUCTS_CACHE.value && PRODUCTS_CACHE.value.startsWith(key)) return PRODUCTS_CACHE.value;
   const products = loadProducts();
-  PRODUCTS_CACHE.value = products.slice(0, 97).map((p) =>
-    `${p["Product Type"]}: style=${p["Primary Style Recommendation"]}, colors=${p["Color Palette Focus"]}, pattern=${p["Landing Page Pattern"]}`
+  PRODUCTS_CACHE.value = key + "\n" + products.slice(0, limit).map((p) =>
+    `#${products.indexOf(p) + 1} ${p["Product Type"]}: style="${p["Primary Style Recommendation"]}" pattern="${p["Landing Page Pattern"]}"`
   ).join("\n");
   PRODUCTS_CACHE.loaded = true;
   return PRODUCTS_CACHE.value;
 }
 
-export function getReasoningBlock(): string {
+export function getReasoningBlock(limit = 101): string {
   if (!isServer) return "";
-  if (REASONING_CACHE.loaded) return REASONING_CACHE.value;
+  const key = `rsn_${limit}`;
+  if (REASONING_CACHE.value && REASONING_CACHE.value.startsWith(key)) return REASONING_CACHE.value;
   const rules = loadReasoning();
-  REASONING_CACHE.value = rules.slice(0, 101).map((r) =>
-    `${r.UI_Category}: pattern=${r.Recommended_Pattern}, style=${r.Style_Priority}, anti-patterns=${r.Anti_Patterns}`
+  REASONING_CACHE.value = key + "\n" + rules.slice(0, limit).map((r) =>
+    `[${r.UI_Category}] pattern=${r.Recommended_Pattern} | anti=${r.Anti_Patterns}`
   ).join("\n");
   REASONING_CACHE.loaded = true;
   return REASONING_CACHE.value;
