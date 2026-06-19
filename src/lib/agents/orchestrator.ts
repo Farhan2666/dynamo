@@ -7,6 +7,7 @@ import { runResearchAgent, applyResearchToPrompt } from "./agent4-researcher";
 import { runSelfReview, type ReviewReport } from "./agent5-reviewer";
 import { detectLanguage } from "@/lib/utils/language";
 import { extractJsonFromResponse } from "@/lib/utils/json";
+import { getProductsBlock, getStylesBlock, getColorsBlock, getTypographyBlock, getReasoningBlock, getAntiSlopRules } from "@/lib/skill-loader";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -18,22 +19,46 @@ async function llmAnalyzeContext(
 ): Promise<ContextProfile | null> {
   try {
     const lang = detectLanguage(prompt);
-    const system = `You are a market context analyzer. Analyze the business description and output ONLY valid JSON:
+    const skillInject = settings?.skillInject ?? true;
+    const productsRef = skillInject ? getProductsBlock() : "";
+    const colorsRef = skillInject ? getColorsBlock() : "";
+    const fontsRef = skillInject ? getTypographyBlock() : "";
+    const stylesRef = skillInject ? getStylesBlock() : "";
+
+    const skillBlock = skillInject ? `
+
+REFERENSI 97 INDUSTRIES (masing-masing punya style, color palette, pattern rekomendasi):
+${productsRef}
+
+REFERENSI 97 COLOR PALETTES (hex codes per industri):
+${colorsRef}
+
+REFERENSI 58 FONT PAIRINGS (Google Fonts):
+${fontsRef}
+
+REFERENSI 68 UI STYLES:
+${stylesRef}
+` : "";
+
+    const system = `You are a market context analyzer with access to a database of 97 industry-proven design profiles. Analyze the business description and match it to the best design profile.${skillBlock}
+
+Output ONLY valid JSON:
 {
   "niche": "exact business category (be specific, not just 'saas' or 'tech')",
   "industryTags": ["3-5 specific keywords about this business"],
   "primaryColor": "hex color based on brand psychology for this industry",
   "secondaryColor": "hex secondary color",
   "accentColor": "hex accent color (often complementary to primary, for small highlights)",
-  "primaryFont": "heading font (Inter, Sora, or Poppins)",
-  "secondaryFont": "body font (Inter, Sora, or Poppins)",
+  "primaryFont": "heading font (choose from font pairing references above)",
+  "secondaryFont": "body font (choose from font pairing references above)",
   "layoutPriority": ["hero", "features", "testimonials", "cta"],
   "audiencePersona": "specific target audience description",
-  "moodProfile": "one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced",
+  "moodProfile": "one of: trust, professional, calm, growth, energetic, playful, warm, confident, balanced, creative, stable, compassionate",
   "language": "${lang}"
 }
 
 The MOST IMPORTANT rule: niche MUST be specific (e.g. "cattle farming marketplace" not "ecommerce"; "vegan bakery" not "food"). Use terms from the user's prompt directly.
+Gunakan referensi di atas untuk memilih warna, font, dan style yang PALING COCOK.
 ONLY valid JSON. No markdown. No explanations.`;
 
     const result = await callLLM({
@@ -115,8 +140,32 @@ async function llmGenerateLayout(
       ? "BAHASA: Semua teks konten (headline, subheadline, title, description, dll) harus dalam BAHASA INDONESIA. Jangan pakai bahasa Inggris. Gunakan bahasa Indonesia yang alami dan menarik."
       : "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) must be in ENGLISH.";
     const copySummary = copy.map((c) => `${c.type}: ${c.content}`).join("\n");
+    const skillInject = settings?.skillInject ?? true;
+    const stylesRef = skillInject ? getStylesBlock() : "";
+    const colorsRef = skillInject ? getColorsBlock() : "";
+    const fontsRef = skillInject ? getTypographyBlock() : "";
+    const reasoningRef = skillInject ? getReasoningBlock() : "";
+    const antiSlopRef = skillInject ? getAntiSlopRules() : "";
+
+    const skillBlock = skillInject ? `
+
+REFERENSI 68 UI STYLES (pilih yang paling cocok untuk ${context.niche}):
+${stylesRef}
+
+REFERENSI 97 COLOR PALETTES (per industri):
+${colorsRef}
+
+REFERENSI 58 FONT PAIRINGS:
+${fontsRef}
+
+REFERENSI 101 DESIGN REASONING RULES (decision rules + anti-patterns per industri):
+${reasoningRef}
+
+${antiSlopRef}
+` : "";
+
     const system = `You are a world-class UI engineer who designs like a human art director, not an AI template machine. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
-${langNote}
+${langNote}${skillBlock}
 
 DESIGN SYSTEM-FIRST APPROACH:
 Before writing any UI code, define a complete design system:

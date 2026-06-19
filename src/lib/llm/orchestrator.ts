@@ -65,6 +65,13 @@ const PROVIDER_MAP: Record<LLMProvider, ProviderConfig> = {
     keyPrefix: "",
     supportsStreaming: true,
   },
+  deepseek: {
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/v1",
+    defaultModel: "deepseek-chat",
+    keyPrefix: "sk-",
+    supportsStreaming: true,
+  },
 };
 
 const COST_ESTIMATES: Record<LLMProvider, { input: number; output: number }> = {
@@ -76,6 +83,7 @@ const COST_ESTIMATES: Record<LLMProvider, { input: number; output: number }> = {
   together: { input: 0.01, output: 0.02 },
   groq: { input: 0.005, output: 0.01 },
   openrouter: { input: 0.02, output: 0.04 },
+  deepseek: { input: 0.001, output: 0.002 },
 };
 
 export function getProviderConfig(provider: LLMProvider): ProviderConfig {

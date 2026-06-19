@@ -1,4 +1,5 @@
 import type { LayoutSchema, CopyElement, ContextProfile, Section } from "@/types";
+import { getUXGuidelinesBlock, getAntiSlopRules } from "@/lib/skill-loader";
 
 export interface ReviewIssue {
   sectionId: string;
@@ -47,8 +48,24 @@ function isGenericAI(val: string | undefined): boolean {
     "cutting-edge", "next-gen", "revolutionary", "game-changer",
     "state-of-the-art", "leverage", "synergy", "paradigm shift",
     "disrupt", "innovative solution", "seamless experience",
+    "seamless", "robust", "best-in-class", "industry-leading",
+    "cutting edge", "next generation", "groundbreaking",
   ];
   return buzzwords.some((bw) => lower.includes(bw));
+}
+
+function hasAISlopColor(layout: LayoutSchema): boolean {
+  const ds = layout.designSystem;
+  if (!ds) return false;
+  const purplePinkGradients = ["#6366F1", "#8B5CF6", "#EC4899", "#A855F7", "#D946EF"];
+  const primary = ds.colors.primary.toLowerCase();
+  return purplePinkGradients.some((c) => primary.includes(c.toLowerCase()));
+}
+
+function hasDefaultInterFont(layout: LayoutSchema): boolean {
+  return layout.twConfig?.some((c) =>
+    c.toLowerCase().includes("inter") && !c.toLowerCase().includes("font-heading")
+  ) ?? false;
 }
 
 function detectMixedLanguage(text: string, expectedLang: string): boolean {
@@ -302,6 +319,41 @@ function calculateAccessibilityScore(context: ContextProfile, layout: LayoutSche
   return Math.min(100, score);
 }
 
+function detectAISlopIssues(layout: LayoutSchema): ReviewIssue[] {
+  const issues: ReviewIssue[] = [];
+  if (hasAISlopColor(layout)) {
+    issues.push({
+      sectionId: "design-system",
+      sectionType: "global",
+      field: "primaryColor",
+      severity: "warning",
+      message: "AI-slop purple/pink gradient detected — replace with intentional brand colors",
+    });
+  }
+  if (layout.twConfig?.some((c) => c.includes("Inter"))) {
+    issues.push({
+      sectionId: "design-system",
+      sectionType: "global",
+      field: "typography",
+      severity: "info",
+      message: "Inter font detected — consider a more distinctive pairing from the 58 font options",
+    });
+  }
+  const ctaTexts = layout.sections
+    .filter((s) => s.content?.cta)
+    .map((s) => s.content.cta.toLowerCase());
+  if (ctaTexts.some((t) => t.includes("get started"))) {
+    issues.push({
+      sectionId: "cta",
+      sectionType: "cta",
+      field: "cta",
+      severity: "info",
+      message: "Generic 'Get Started' CTA — use context-specific action text",
+    });
+  }
+  return issues;
+}
+
 export function runSelfReview(
   layout: LayoutSchema,
   copy: CopyElement[],
@@ -317,13 +369,18 @@ export function runSelfReview(
     fixedSections.push(fixedSection);
   }
 
+  const aiSlopIssues = detectAISlopIssues(layout);
+  allIssues.push(...aiSlopIssues);
+
   const { score: conversionScore, metrics } = calculateConversionScore(layout);
   const languageScore = calculateLanguageScore(layout, lang);
   const completenessScore = calculateCompletenessScore(layout);
   const accessibilityScore = calculateAccessibilityScore(context, layout);
-  const overallScore = Math.round(
-    conversionScore * 0.35 + languageScore * 0.25 + completenessScore * 0.25 + accessibilityScore * 0.15
-  );
+
+  const slopPenalty = aiSlopIssues.length * 5;
+  const overallScore = Math.max(0, Math.round(
+    conversionScore * 0.35 + languageScore * 0.25 + completenessScore * 0.25 + accessibilityScore * 0.15 - slopPenalty
+  ));
 
   return {
     overallScore,

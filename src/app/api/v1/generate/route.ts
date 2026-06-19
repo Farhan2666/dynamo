@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateLayout } from "@/lib/agents/agent3-ui-engineer";
 import { callLLMService } from "@/lib/llm/direct-call";
 import type { ContextProfile, LayoutSchema, CopyElement } from "@/types";
+import { getStylesBlock, getColorsBlock, getTypographyBlock, getAntiSlopRules } from "@/lib/skill-loader";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,10 +24,30 @@ export async function POST(req: NextRequest) {
           ? "LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) MUST be in ENGLISH."
           : `LANGUAGE: All content text (headline, subheadline, title, descriptions, etc.) MUST be in "${lang}". Use natural phrasing.`;
         const copySummary = (copy as CopyElement[]).map((c: CopyElement) => `${c.type}: ${c.content}`).join("\n");
+        const skillInject = settings?.skillInject ?? true;
+        const stylesRef = skillInject ? getStylesBlock() : "";
+        const colorsRef = skillInject ? getColorsBlock() : "";
+        const fontsRef = skillInject ? getTypographyBlock() : "";
+        const antiSlopRef = skillInject ? getAntiSlopRules() : "";
+
+        const skillBlock = skillInject ? `
+
+REFERENSI 68 UI STYLES:
+${stylesRef}
+
+REFERENSI 97 COLOR PALETTES:
+${colorsRef}
+
+REFERENSI 58 FONT PAIRINGS:
+${fontsRef}
+
+${antiSlopRef}
+` : "";
+
         const system = `You are a world-class UI engineer. Design a beautiful landing page layout for ${context.niche} (mood: ${context.moodProfile}).
 ${langNote}
 Colors: primary ${context.primaryColor}, secondary ${context.secondaryColor}.
-Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.
+Fonts: heading ${context.primaryFont}, body ${context.secondaryFont}.${skillBlock}
 
 CRITICAL: This page MUST NOT look AI-generated. Avoid generic buzzwords and symmetrical template patterns. Write like a real brand.
 

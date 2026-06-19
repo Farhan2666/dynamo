@@ -23,6 +23,7 @@ const PROVIDERS: Array<{
   { id: "together", name: "Together", icon: "🤝", cost: "$0.01/1K", strength: "Open Models", color: "from-green-500 to-teal-500" },
   { id: "groq", name: "Groq", icon: "⚡", cost: "$0.005/1K", strength: "Low Latency", color: "from-orange-500 to-red-500" },
   { id: "openrouter", name: "OpenRouter", icon: "🔀", cost: "Varies", strength: "Aggregation", color: "from-pink-500 to-rose-500" },
+  { id: "deepseek", name: "DeepSeek", icon: "🐋", cost: "$0.001/1K", strength: "Affordable", color: "from-cyan-500 to-blue-500" },
 ];
 
 function validateKey(key: string, provider: LLMProvider): boolean {
@@ -241,6 +242,32 @@ export function SetupPageClient() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card variant="default" padding="lg">
+          <h3 className="font-heading font-bold text-lg mb-2">
+            AI Skill Injection ⚡
+          </h3>
+          <p className="text-body-sm text-text-secondary mb-4">
+            Inject 500+ design rules from professional UI/UX skills into agent prompts.
+            Makes DeepSeek and other models produce expert-quality output.
+          </p>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={settings.skillInject ?? true}
+                onChange={(e) => updateSettings({ skillInject: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-6 bg-surface-tertiary rounded-full peer-checked:bg-brand-primary transition-colors" />
+              <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-soft peer-checked:translate-x-4 transition-transform" />
+            </div>
+            <div>
+              <div className="font-medium text-body-sm text-text-primary">Inject Design Skills</div>
+              <div className="text-caption text-text-muted">Adds 68 styles, 97 palettes, 58 fonts, 100+ rules to prompt</div>
+            </div>
+          </label>
         </Card>
 
         {settings.apiKey && (

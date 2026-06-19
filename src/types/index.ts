@@ -204,7 +204,8 @@ export type LLMProvider =
   | "cohere"
   | "together"
   | "groq"
-  | "openrouter";
+  | "openrouter"
+  | "deepseek";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -257,4 +258,5 @@ export interface UserSettings {
   defaultModel: string;
   theme: "light" | "dark";
   historySize: number;
+  skillInject?: boolean;
 }

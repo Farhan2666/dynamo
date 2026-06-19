@@ -60,6 +60,10 @@ const MODEL_LISTS: Record<LLMProvider, string[]> = {
     "microsoft/phi-3-medium-128k-instruct",
     "qwen/qwen-2.5-72b-instruct",
   ],
+  deepseek: [
+    "deepseek-chat",
+    "deepseek-reasoner",
+  ],
 };
 
 export const DEFAULT_MODEL: Record<LLMProvider, string> = {
@@ -71,6 +75,7 @@ export const DEFAULT_MODEL: Record<LLMProvider, string> = {
   together: "mixtral-8x22b-instruct",
   groq: "mixtral-8x7b-32768",
   openrouter: "deepseek/deepseek-chat",
+  deepseek: "deepseek-chat",
 };
 
 export function getModels(provider: LLMProvider): string[] {

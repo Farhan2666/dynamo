@@ -213,11 +213,12 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       settings: {
-        llmProvider: "anthropic",
+        llmProvider: "deepseek",
         apiKey: "",
-        defaultModel: "claude-3-5-sonnet-20240620",
+        defaultModel: "deepseek-chat",
         theme: "light",
         historySize: 10,
+        skillInject: true,
       },
       updateSettings: (partial) =>
         set((state) => ({ settings: { ...state.settings, ...partial } })),
