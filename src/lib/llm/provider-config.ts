@@ -18,5 +18,5 @@ export const PROVIDER_CONFIG: Record<string, ProviderEntry> = {
 };
 
 export function supportsJsonMode(provider: string): boolean {
-  return provider === "openai" || provider === "openrouter" || provider === "deepseek";
+  return provider === "openai" || provider === "openrouter" || provider === "deepseek" || provider === "google";
 }

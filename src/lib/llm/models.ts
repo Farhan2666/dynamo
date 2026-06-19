@@ -20,8 +20,12 @@ const MODEL_LISTS: Record<LLMProvider, string[]> = {
     "open-mistral-7b",
   ],
   google: [
-    "gemini-1.5-pro",
+    "gemini-2.0-flash-exp",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-pro",
     "gemini-1.0-pro",
   ],
   cohere: [
@@ -70,7 +74,7 @@ export const DEFAULT_MODEL: Record<LLMProvider, string> = {
   openai: "gpt-4o",
   anthropic: "claude-3-5-sonnet-20240620",
   mistral: "mistral-large-latest",
-  google: "gemini-1.5-pro",
+  google: "gemini-2.0-flash",
   cohere: "command-r-plus",
   together: "mixtral-8x22b-instruct",
   groq: "mixtral-8x7b-32768",

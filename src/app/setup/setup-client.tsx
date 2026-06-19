@@ -18,7 +18,7 @@ const PROVIDERS: Array<{
   { id: "openai", name: "OpenAI", icon: "⚡", cost: "$0.03/1K", strength: "Balanced", color: "from-emerald-500 to-emerald-600" },
   { id: "anthropic", name: "Anthropic", icon: "🧠", cost: "$0.02/1K", strength: "Creative", color: "from-purple-500 to-purple-600" },
   { id: "mistral", name: "Mistral", icon: "🌪️", cost: "$0.01/1K", strength: "Speed", color: "from-blue-500 to-cyan-500" },
-  { id: "google", name: "Google AI", icon: "🔬", cost: "$0.02/1K", strength: "Research", color: "from-blue-600 to-indigo-600" },
+  { id: "google", name: "Gemini", icon: "🔬", cost: "Free tier", strength: "2.0 Flash", color: "from-blue-600 to-indigo-600" },
   { id: "cohere", name: "Cohere", icon: "🎯", cost: "$0.015/1K", strength: "Embeddings", color: "from-red-500 to-orange-500" },
   { id: "together", name: "Together", icon: "🤝", cost: "$0.01/1K", strength: "Open Models", color: "from-green-500 to-teal-500" },
   { id: "groq", name: "Groq", icon: "⚡", cost: "$0.005/1K", strength: "Low Latency", color: "from-orange-500 to-red-500" },
@@ -39,6 +39,7 @@ export function SetupPageClient() {
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [connStatus, setConnStatus] = useState<"idle" | "testing" | "connected" | "error">("idle");
+  const [customModel, setCustomModel] = useState(false);
 
   const handleTest = useCallback(async () => {
     setTesting(true);
@@ -185,28 +186,47 @@ export function SetupPageClient() {
               </div>
 
               <div>
-                <label className="block text-caption font-medium text-text-muted mb-1.5">
-                  Model
-                </label>
-                <div className="relative">
-                  <select
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-caption font-medium text-text-muted">
+                    Model
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCustomModel(!customModel)}
+                    className="text-caption text-brand-primary hover:underline"
+                  >
+                    {customModel ? "Pick preset" : "Custom model"}
+                  </button>
+                </div>
+                {customModel ? (
+                  <input
+                    type="text"
                     value={settings.defaultModel}
                     onChange={(e) => updateSettings({ defaultModel: e.target.value })}
-                    className="w-full appearance-none bg-surface border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-all cursor-pointer"
-                  >
-                    {getModels(settings.llmProvider).map((model) => (
-                      <option key={model} value={model}>
-                        {model}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none"
-                    viewBox="0 0 14 14" fill="none"
-                  >
-                    <path d="M4 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+                    placeholder="e.g. gemini-2.0-flash, claude-3-opus, gpt-4o"
+                    className="w-full bg-surface border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-all font-mono"
+                  />
+                ) : (
+                  <div className="relative">
+                    <select
+                      value={settings.defaultModel}
+                      onChange={(e) => updateSettings({ defaultModel: e.target.value })}
+                      className="w-full appearance-none bg-surface border border-surface-tertiary rounded-soft px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-all cursor-pointer"
+                    >
+                      {getModels(settings.llmProvider).map((model) => (
+                        <option key={model} value={model}>
+                          {model}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none"
+                      viewBox="0 0 14 14" fill="none"
+                    >
+                      <path d="M4 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
