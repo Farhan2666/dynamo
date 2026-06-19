@@ -1,5 +1,4 @@
 import type { LayoutSchema, CopyElement, ContextProfile, Section } from "@/types";
-import { getUXGuidelinesBlock, getAntiSlopRules } from "@/lib/skill-loader";
 
 export interface ReviewIssue {
   sectionId: string;
@@ -60,12 +59,6 @@ function hasAISlopColor(layout: LayoutSchema): boolean {
   const purplePinkGradients = ["#6366F1", "#8B5CF6", "#EC4899", "#A855F7", "#D946EF"];
   const primary = ds.colors.primary.toLowerCase();
   return purplePinkGradients.some((c) => primary.includes(c.toLowerCase()));
-}
-
-function hasDefaultInterFont(layout: LayoutSchema): boolean {
-  return layout.twConfig?.some((c) =>
-    c.toLowerCase().includes("inter") && !c.toLowerCase().includes("font-heading")
-  ) ?? false;
 }
 
 function detectMixedLanguage(text: string, expectedLang: string): boolean {

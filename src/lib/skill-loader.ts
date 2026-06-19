@@ -1,5 +1,3 @@
-const isServer = typeof window === "undefined";
-
 function parseCSV(text: string): string[][] {
   const lines = text.trim().split("\n");
   return lines.map((line) => {
@@ -17,10 +15,10 @@ function parseCSV(text: string): string[][] {
 }
 
 function loadCSV(filename: string): string[][] {
-  if (!isServer) return [];
   try {
-    const fs = require("fs") as typeof import("fs");
-    const path = require("path") as typeof import("path");
+    const _require = eval('require') as NodeRequire;
+    const fs = _require("fs") as typeof import("fs");
+    const path = _require("path") as typeof import("path");
     const filePath = path.join(process.cwd(), "src/lib/skill-data", filename);
     if (!fs.existsSync(filePath)) return [];
     return parseCSV(fs.readFileSync(filePath, "utf-8"));
@@ -125,73 +123,7 @@ export function loadUXGuidelines(): UXGuidelineRecord[] {
   return rowsToObjects<UXGuidelineRecord>(loadCSV("ux-guidelines.csv"));
 }
 
-const STYLES_CACHE = { loaded: false, value: "" };
-const COLORS_CACHE = { loaded: false, value: "" };
-const FONTS_CACHE = { loaded: false, value: "" };
-const PRODUCTS_CACHE = { loaded: false, value: "" };
-const REASONING_CACHE = { loaded: false, value: "" };
 
-export function getStylesBlock(limit = 67): string {
-  if (!isServer) return "";
-  const key = `sty_${limit}`;
-  if (STYLES_CACHE.value && STYLES_CACHE.value.startsWith(key)) return STYLES_CACHE.value;
-  const styles = loadStyles();
-  STYLES_CACHE.value = key + "\n" + styles.slice(0, limit).map((s, i) => {
-    const name = s["Style Category"] || s.Style || "Unknown";
-    const kw = s.Keywords.split(",").slice(0, 5).map(k => k.trim()).join(", ");
-    return `${i + 1}. ${name}: ${kw}`;
-  }).join("\n");
-  STYLES_CACHE.loaded = true;
-  return STYLES_CACHE.value;
-}
-
-export function getColorsBlock(limit = 97): string {
-  if (!isServer) return "";
-  const key = `col_${limit}`;
-  if (COLORS_CACHE.value && COLORS_CACHE.value.startsWith(key)) return COLORS_CACHE.value;
-  const colors = loadColors();
-  COLORS_CACHE.value = key + "\n" + colors.slice(0, limit).map((c) =>
-    `[${c["Product Type"]}] P=${c["Primary (Hex)"]} S=${c["Secondary (Hex)"]} C=${c["CTA (Hex)"]} Bg=${c["Background (Hex)"]} T=${c["Text (Hex)"]}`
-  ).join("\n");
-  COLORS_CACHE.loaded = true;
-  return COLORS_CACHE.value;
-}
-
-export function getTypographyBlock(limit = 58): string {
-  if (!isServer) return "";
-  const key = `fnt_${limit}`;
-  if (FONTS_CACHE.value && FONTS_CACHE.value.startsWith(key)) return FONTS_CACHE.value;
-  const fonts = loadTypography();
-  FONTS_CACHE.value = key + "\n" + fonts.slice(0, limit).map((f) =>
-    `#${fonts.indexOf(f) + 1} ${f["Font Pairing Name"]}: H="${f["Heading Font"]}" B="${f["Body Font"]}" — ${f["Best For"].slice(0, 40)}`
-  ).join("\n");
-  FONTS_CACHE.loaded = true;
-  return FONTS_CACHE.value;
-}
-
-export function getProductsBlock(limit = 97): string {
-  if (!isServer) return "";
-  const key = `prd_${limit}`;
-  if (PRODUCTS_CACHE.value && PRODUCTS_CACHE.value.startsWith(key)) return PRODUCTS_CACHE.value;
-  const products = loadProducts();
-  PRODUCTS_CACHE.value = key + "\n" + products.slice(0, limit).map((p) =>
-    `#${products.indexOf(p) + 1} ${p["Product Type"]}: style="${p["Primary Style Recommendation"]}" pattern="${p["Landing Page Pattern"]}"`
-  ).join("\n");
-  PRODUCTS_CACHE.loaded = true;
-  return PRODUCTS_CACHE.value;
-}
-
-export function getReasoningBlock(limit = 101): string {
-  if (!isServer) return "";
-  const key = `rsn_${limit}`;
-  if (REASONING_CACHE.value && REASONING_CACHE.value.startsWith(key)) return REASONING_CACHE.value;
-  const rules = loadReasoning();
-  REASONING_CACHE.value = key + "\n" + rules.slice(0, limit).map((r) =>
-    `[${r.UI_Category}] pattern=${r.Recommended_Pattern} | anti=${r.Anti_Patterns}`
-  ).join("\n");
-  REASONING_CACHE.loaded = true;
-  return REASONING_CACHE.value;
-}
 
 function tokenize(text: string): string[] {
   return text.toLowerCase()
@@ -346,14 +278,6 @@ export function formatCuratedPicks(picks: CuratedPick[], label: string): string 
   if (picks.length === 0) return `[${label}: none matched]`;
   return `${label}:\n` + picks.map((p, i) =>
     `${i + 1}. ${p.name} — ${p.details} (${p.reason})`
-  ).join("\n");
-}
-
-export function getUXGuidelinesBlock(): string {
-  if (!isServer) return "";
-  const guidelines = loadUXGuidelines();
-  return guidelines.slice(0, 100).map((g) =>
-    `[${g.Severity}] ${g.Issue}: ${g.Description} | DO: ${g.Do} | DON'T: ${g["Don't"]}`
   ).join("\n");
 }
 
