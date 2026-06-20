@@ -152,6 +152,24 @@ ${langNote}${skillBlock}
 
 ${antiSlopRef}
 
+CSS EFFECTS LIBRARY (use mood-appropriate effects):
+- NEON GLOW: For cyberpunk/gaming/creative — text-shadow: 0 0 10px color, box-shadow: 0 0 20px color
+- CRT SCANLINES: For retro/sci-fi — ::before overlay with repeating linear-gradient
+- GLITCH: For edgy/tech — @keyframes with translate + skew offset
+- SHIMMER: For premium/luxury — background: linear-gradient with animated background-position
+- GRADIENT MESH: For calm/warm — multiple radial-gradient blobs with float animation
+- ANIMATED GRADIENT: For playful/energetic — @keyframes moving gradient background
+- FLOATING PARTICLES: For creative — absolute positioned dots with float animation
+- GLASS MORPHISM: backdrop-filter: blur + translucent background + subtle border
+
+Mood → Effects mapping:
+- playful/creative: NEON GLOW + GLITCH + FLOATING PARTICLES + ANIMATED GRADIENT
+- energetic: NEON GLOW + SHIMMER + ANIMATED GRADIENT
+- calm/stable: GRADIENT MESH + subtle shadows
+- trust/professional: SHIMMER + refined shadows
+- warm: GRADIENT MESH + ANIMATED GRADIENT
+- growth/compassionate: SHIMMER + GRADIENT MESH
+
 Output JSON:
 {
   "layout": "centered|asymmetric|split|full-width|grid",

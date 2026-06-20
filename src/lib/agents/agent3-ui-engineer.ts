@@ -1,5 +1,6 @@
-import type { ContextProfile, LayoutSchema, DesignSystem, Section } from "@/types";
+import type { ContextProfile, LayoutSchema, DesignSystem, Section, CSSEffects } from "@/types";
 import { selectPattern } from "../layout-engine/patterns";
+import { getCuratedFonts, getCuratedColors, getCuratedStyles } from "../skill-loader";
 
 const WCAG_MIN_CONTRAST = 4.5;
 
@@ -40,11 +41,146 @@ function darken(hex: string, amount: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function generateCSSEffects(mood: string, primaryColor: string, secondaryColor: string, accentColor: string): CSSEffects {
+  const effects: CSSEffects = {};
+
+  switch (mood) {
+    case "playful":
+    case "creative":
+      effects.neonGlow = true;
+      effects.glitchAnimation = true;
+      effects.floatingParticles = true;
+      effects.animatedGradient = true;
+      effects.textShadow = `0 0 10px ${primaryColor}80, 0 0 20px ${primaryColor}40, 0 0 40px ${primaryColor}20`;
+      effects.boxShadow = `0 0 15px ${primaryColor}30, 0 0 30px ${secondaryColor}20`;
+      effects.animationKeyframes = `
+        @keyframes neonPulse {
+          0%, 100% { filter: brightness(1) drop-shadow(0 0 8px ${primaryColor}60); }
+          50% { filter: brightness(1.1) drop-shadow(0 0 16px ${primaryColor}80); }
+        }
+        @keyframes glitchShake {
+          0%, 100% { transform: translate(0); }
+          10% { transform: translate(-2px, 1px); }
+          20% { transform: translate(2px, -1px); }
+          30% { transform: translate(-1px, 2px); }
+          40% { transform: translate(1px, -2px); }
+          50% { transform: translate(-2px, 0px); }
+          60% { transform: translate(2px, 1px); }
+          70% { transform: translate(0px, -1px); }
+          80% { transform: translate(-1px, 0px); }
+          90% { transform: translate(1px, 2px); }
+        }
+        @keyframes floatParticle {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.6; }
+          25% { transform: translateY(-20px) translateX(10px); opacity: 1; }
+          50% { transform: translateY(-40px) translateX(-5px); opacity: 0.8; }
+          75% { transform: translateY(-20px) translateX(-10px); opacity: 0.4; }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }`;
+      break;
+
+    case "energetic":
+      effects.neonGlow = true;
+      effects.animatedGradient = true;
+      effects.shimmer = true;
+      effects.textShadow = `0 0 8px ${accentColor}60, 0 0 16px ${accentColor}30`;
+      effects.boxShadow = `0 4px 20px ${primaryColor}25, 0 0 40px ${accentColor}15`;
+      effects.animationKeyframes = `
+        @keyframes neonPulse {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.05); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }`;
+      break;
+
+    case "calm":
+    case "stable":
+      effects.gradientMesh = true;
+      effects.textShadow = `0 1px 2px rgba(0,0,0,0.1)`;
+      effects.boxShadow = `0 2px 12px ${primaryColor}12`;
+      effects.animationKeyframes = `
+        @keyframes meshFloat {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(10px, -15px) scale(1.02); }
+          66% { transform: translate(-8px, 10px) scale(0.98); }
+        }`;
+      break;
+
+    case "trust":
+    case "professional":
+    case "confident":
+      effects.shimmer = true;
+      effects.textShadow = `0 1px 3px rgba(0,0,0,0.12)`;
+      effects.boxShadow = `0 4px 24px ${primaryColor}15, 0 1px 4px rgba(0,0,0,0.08)`;
+      effects.animationKeyframes = `
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }`;
+      break;
+
+    case "warm":
+      effects.gradientMesh = true;
+      effects.animatedGradient = true;
+      effects.textShadow = `0 1px 2px rgba(0,0,0,0.08)`;
+      effects.boxShadow = `0 4px 20px ${primaryColor}18`;
+      effects.animationKeyframes = `
+        @keyframes meshFloat {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(5px, -8px) scale(1.01); }
+        }`;
+      break;
+
+    case "growth":
+    case "compassionate":
+      effects.shimmer = true;
+      effects.gradientMesh = true;
+      effects.textShadow = `0 1px 2px rgba(0,0,0,0.1)`;
+      effects.boxShadow = `0 4px 16px ${primaryColor}15`;
+      effects.animationKeyframes = `
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }`;
+      break;
+
+    default:
+      effects.textShadow = `0 1px 2px rgba(0,0,0,0.08)`;
+      effects.boxShadow = `0 2px 12px rgba(0,0,0,0.08)`;
+      effects.animationKeyframes = `
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }`;
+  }
+
+  return effects;
+}
+
 function generateDesignSystem(context: ContextProfile): DesignSystem {
-  const { primaryColor, secondaryColor, moodProfile, primaryFont, secondaryFont } = context;
+  const { primaryColor, secondaryColor, moodProfile, primaryFont, secondaryFont, accentColor, niche, industryTags } = context;
   const mood = moodProfile || "balanced";
 
-  const isDark = assessContrast(primaryColor, "#FFFFFF") < 3;
+  const curatedFonts = getCuratedFonts(niche, industryTags, 1);
+  const curatedColors = getCuratedColors(niche, industryTags, 1);
+  const curatedStyles = getCuratedStyles(niche, industryTags, 1);
+
+  const bestFont = curatedFonts[0]?.details || "";
+  const fontMatch = bestFont.match(/H="([^"]+)"\s+B="([^"]+)"/);
+  const finalHeadingFont = primaryFont !== "Sora" && primaryFont !== "Inter" ? primaryFont : (fontMatch?.[1] || primaryFont);
+  const finalBodyFont = secondaryFont !== "Inter" && secondaryFont !== "Sora" ? secondaryFont : (fontMatch?.[2] || secondaryFont);
+
+  const bestColor = curatedColors[0]?.details || "";
+  const colorMatch = bestColor.match(/P=(#[A-Fa-f0-9]+)/);
+  const finalPrimary = primaryColor && primaryColor !== "#6E56CF" ? primaryColor : (colorMatch?.[1] || primaryColor);
+
+  const isDark = assessContrast(finalPrimary, "#FFFFFF") < 3;
   const surfaceLight = isDark ? "#1A1A2E" : "#FFFFFF";
   const surfaceSecondaryLight = isDark ? "#2A2A4A" : "#F8F8FE";
   const surfaceTertiaryLight = isDark ? "#3A3A5A" : "#EEEEF8";
@@ -64,17 +200,17 @@ function generateDesignSystem(context: ContextProfile): DesignSystem {
   const asymmetryIntensity = intensityMap[mood] || 2;
 
   const displayFont = mood === "playful" || mood === "creative"
-    ? (primaryFont === "Sora" ? "Space Grotesk" : primaryFont)
-    : primaryFont;
+    ? (finalHeadingFont === "Sora" ? "Space Grotesk" : finalHeadingFont)
+    : finalHeadingFont;
 
   const designSystem: DesignSystem = {
     colors: {
-      primary: primaryColor || "#6E56CF",
-      primaryLight: isEmpty(primaryColor) ? "#8B75E0" : lighten(primaryColor || "#6E56CF", 0.15),
-      primaryDark: isEmpty(primaryColor) ? "#5A3FAF" : darken(primaryColor || "#6E56CF", 0.15),
+      primary: finalPrimary || "#6E56CF",
+      primaryLight: isEmpty(finalPrimary) ? "#8B75E0" : lighten(finalPrimary || "#6E56CF", 0.15),
+      primaryDark: isEmpty(finalPrimary) ? "#5A3FAF" : darken(finalPrimary || "#6E56CF", 0.15),
       secondary: secondaryColor || "#00C4B4",
       secondaryDark: isEmpty(secondaryColor) ? "#00A094" : darken(secondaryColor || "#00C4B4", 0.15),
-      accent: mood === "energetic" ? "#FF7E33" : mood === "calm" ? "#8B9D6E" : mood === "playful" ? "#EC4899" : "#FF7E33",
+      accent: accentColor || (mood === "energetic" ? "#FF7E33" : mood === "calm" ? "#8B9D6E" : mood === "playful" ? "#EC4899" : "#FF7E33"),
       surface: surfaceLight,
       surfaceSecondary: surfaceSecondaryLight,
       surfaceTertiary: surfaceTertiaryLight,
@@ -83,11 +219,11 @@ function generateDesignSystem(context: ContextProfile): DesignSystem {
       textMuted,
       textInverse,
       border: surfaceTertiaryLight,
-      ring: `${primaryColor || "#6E56CF"}33`,
+      ring: `${finalPrimary || "#6E56CF"}33`,
     },
     typography: {
-      headingFont: primaryFont || "Sora",
-      bodyFont: secondaryFont || "Inter",
+      headingFont: finalHeadingFont || "Outfit",
+      bodyFont: finalBodyFont || "Work Sans",
       displayFont,
       monoFont: "JetBrains Mono",
       scale: {
@@ -148,7 +284,7 @@ function generateDesignSystem(context: ContextProfile): DesignSystem {
       md: "shadow-md",
       lg: "shadow-lg",
       xl: "shadow-xl",
-      glow: `shadow-[0_0_24px_${primaryColor || "#6E56CF"}40]`,
+      glow: `shadow-[0_0_24px_${finalPrimary || "#6E56CF"}40]`,
       glowAccent: `shadow-[0_0_24px_${secondaryColor || "#00C4B4"}40]`,
       inner: "shadow-inner",
     },
@@ -167,6 +303,7 @@ function generateDesignSystem(context: ContextProfile): DesignSystem {
     glassEffect: mood === "playful" || mood === "creative" || mood === "calm",
     noiseTexture: mood === "professional" || mood === "confident",
     borderVariant: mood === "playful" || mood === "energetic" ? "gradient" : mood === "calm" ? "none" : "default",
+    cssEffects: generateCSSEffects(mood, finalPrimary || "#6E56CF", secondaryColor || "#00C4B4", accentColor || "#FF7E33"),
   };
 
   return designSystem;
@@ -279,7 +416,17 @@ export function generateLayout(context: ContextProfile): LayoutSchema {
 
   const pattern = selectPattern(context.niche, mood, asymmetryIntensity);
   const designSystem = generateDesignSystem(context);
-  const contrastScore = assessContrast(context.primaryColor, "#FFFFFF");
+  const contrastScore = assessContrast(designSystem.colors.primary, "#FFFFFF");
+
+  const cssEffects = designSystem.cssEffects;
+  const effectConfig: string[] = [];
+  if (cssEffects?.neonGlow) effectConfig.push("css-effect: neon-glow");
+  if (cssEffects?.crtScanlines) effectConfig.push("css-effect: crt-scanlines");
+  if (cssEffects?.glitchAnimation) effectConfig.push("css-effect: glitch");
+  if (cssEffects?.floatingParticles) effectConfig.push("css-effect: particles");
+  if (cssEffects?.shimmer) effectConfig.push("css-effect: shimmer");
+  if (cssEffects?.gradientMesh) effectConfig.push("css-effect: gradient-mesh");
+  if (cssEffects?.animatedGradient) effectConfig.push("css-effect: animated-gradient");
 
   const totalSections = pattern.sections.length;
   const enhancedSections: Section[] = pattern.sections.map((s, i) => {
@@ -314,6 +461,7 @@ export function generateLayout(context: ContextProfile): LayoutSchema {
       `--brand-accent: ${designSystem.colors.accent}`,
       `--ds-radius: ${designSystem.radius.md}`,
       `--ds-shadow: ${designSystem.shadows.md}`,
+      ...effectConfig,
     ],
     wcagScore: Math.round(Math.min(contrastScore / WCAG_MIN_CONTRAST * 100, 100)),
     designSystem,

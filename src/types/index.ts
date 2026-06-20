@@ -143,6 +143,20 @@ export interface DesignSystem {
   glassEffect?: boolean;
   noiseTexture?: boolean;
   borderVariant?: "default" | "gradient" | "glow" | "none";
+  cssEffects?: CSSEffects;
+}
+
+export interface CSSEffects {
+  neonGlow?: boolean;
+  crtScanlines?: boolean;
+  glitchAnimation?: boolean;
+  floatingParticles?: boolean;
+  shimmer?: boolean;
+  gradientMesh?: boolean;
+  animatedGradient?: boolean;
+  textShadow?: string;
+  boxShadow?: string;
+  animationKeyframes?: string;
 }
 
 export interface AsymmetryConfig {
