@@ -1,6 +1,6 @@
 import type { ContextProfile, LayoutSchema, DesignSystem, Section, CSSEffects } from "@/types";
 import { selectPattern } from "../layout-engine/patterns";
-import { getCuratedFonts, getCuratedColors, getCuratedStyles } from "../skill-loader";
+import { getCuratedFonts, getCuratedColors } from "../skill-loader";
 
 const WCAG_MIN_CONTRAST = 4.5;
 
@@ -169,7 +169,6 @@ function generateDesignSystem(context: ContextProfile): DesignSystem {
 
   const curatedFonts = getCuratedFonts(niche, industryTags, 1);
   const curatedColors = getCuratedColors(niche, industryTags, 1);
-  const curatedStyles = getCuratedStyles(niche, industryTags, 1);
 
   const bestFont = curatedFonts[0]?.details || "";
   const fontMatch = bestFont.match(/H="([^"]+)"\s+B="([^"]+)"/);
